@@ -26,8 +26,8 @@ function sendDailyHabitReport() {
     emailTo: 'quoc.nguyen3@hoanmy.com', // Thay email của bạn
     
     // Slack settings
-    slackWebhookUrl: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK', // Thay bằng Slack webhook URL của bạn
-    slackChannel: '#habit-tracker', // Kênh Slack
+    slackWebhookUrl: 'https://hooks.slack.com/services/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', // Thay bằng Slack webhook URL của bạn
+    slackChannel: '#chat', // Kênh Slack
     enableSlack: true, // Bật/tắt gửi Slack
     
     // Icons (minimal design)
