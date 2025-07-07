@@ -26,8 +26,8 @@ function sendDailyHabitReport() {
     emailTo: 'quoc.nguyen3@hoanmy.com', // Thay email của bạn
     
     // Slack settings
-    slackWebhookUrl: 'https://hooks.slack.com/services/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', // Thay bằng Slack webhook URL của bạn
-    slackChannel: '#chat', // Kênh Slack
+    slackWebhookUrl: 'https://hooks.slack.com/services/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', // Thay bằng Slack webhook URL của bạn
+    slackChannel: '#habit', // Kênh Slack
     enableSlack: true, // Bật/tắt gửi Slack
     
     // Icons (minimal design)
@@ -899,13 +899,13 @@ function debugSheetStructure() {
 }
 
 /**
- * Gửi báo cáo thói quen qua Slack
+ * Gửi báo cáo thói quen qua Slack với interactive buttons
  */
 function sendSlackReport(data) {
   try {
     const { habits, completedHabits, pendingHabits, completionRate, isPerfectDay, detailedDate, config } = data;
     
-    // Tạo message cho Slack
+    // Tạo message cho Slack với interactive elements
     const slackMessage = buildSlackMessage({
       habits,
       completedHabits,
@@ -1006,16 +1006,36 @@ function buildSlackMessage(data) {
     });
   }
   
-  // Pending habits
+  // Pending habits với interactive buttons
   if (pendingHabits.length > 0) {
-    const pendingText = pendingHabits.map(habit => `⏳ ${habit.name}`).join('\n');
-    
     blocks.push({
       type: 'section',
       text: {
         type: 'mrkdwn',
-        text: `*⏰ Chưa thực hiện (${pendingHabits.length}):*\n${pendingText}`
+        text: `*⏰ Chưa thực hiện (${pendingHabits.length}):*`
       }
+    });
+    
+    // Thêm buttons cho từng habit chưa hoàn thành
+    pendingHabits.forEach((habit, index) => {
+      blocks.push({
+        type: 'section',
+        text: {
+          type: 'mrkdwn',
+          text: `⏳ ${habit.name}`
+        },
+        accessory: {
+          type: 'button',
+          text: {
+            type: 'plain_text',
+            text: '✅ Hoàn thành',
+            emoji: true
+          },
+          value: `complete_habit_${habit.name}_${new Date().toISOString().split('T')[0]}`,
+          action_id: `complete_habit_${index}`,
+          style: 'primary'
+        }
+      });
     });
   }
   
@@ -1053,8 +1073,176 @@ function buildSlackProgressBar(percentage) {
 }
 
 /**
- * Test function để kiểm tra Slack integration
+ * Xử lý Slack interactions (button clicks)
+ * Hàm này cần được deploy như Web App để nhận POST requests từ Slack
  */
+function doPost(e) {
+  try {
+    Logger.log('📨 Received Slack interaction');
+    
+    // Parse Slack payload
+    const payload = JSON.parse(e.parameter.payload || e.postData.contents);
+    
+    if (payload.type === 'block_actions') {
+      const action = payload.actions[0];
+      const actionId = action.action_id;
+      const value = action.value;
+      
+      Logger.log(`🔄 Processing action: ${actionId}, value: ${value}`);
+      
+      // Xử lý complete habit action
+       if (actionId.startsWith('complete_habit_')) {
+         const result = handleCompleteHabitFromSlack(value, payload.user.id);
+         
+         // Tạo response message với updated progress
+         const responseMessage = buildSlackResponseMessage(result, payload.user.id);
+         
+         // Trả về response cho Slack
+         return ContentService
+           .createTextOutput(JSON.stringify({
+             response_type: 'in_channel',
+             text: result.message,
+             blocks: responseMessage.blocks || undefined,
+             replace_original: false
+           }))
+           .setMimeType(ContentService.MimeType.JSON);
+       }
+    }
+    
+    // Default response
+    return ContentService
+      .createTextOutput(JSON.stringify({ text: 'Action processed' }))
+      .setMimeType(ContentService.MimeType.JSON);
+      
+  } catch (error) {
+    Logger.log(`❌ Error processing Slack interaction: ${error.message}`);
+    return ContentService
+      .createTextOutput(JSON.stringify({ text: 'Error processing request' }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+/**
+ * Xử lý việc đánh dấu hoàn thành thói quen từ Slack
+ */
+function handleCompleteHabitFromSlack(value, userId) {
+  try {
+    // Parse value: complete_habit_{habitName}_{date}
+    const parts = value.split('_');
+    const habitName = parts.slice(2, -1).join('_'); // Lấy tên habit (có thể có underscore)
+    const date = parts[parts.length - 1];
+    
+    Logger.log(`🎯 Completing habit: ${habitName} for date: ${date}`);
+    
+    // Mở Google Sheet
+    const sheet = SpreadsheetApp.openById(CONFIG.spreadsheetId).getSheetByName(CONFIG.sheetName);
+    const data = sheet.getDataRange().getValues();
+    
+    // Tìm header row và habit column
+    const headers = data[0];
+    const habitColumnIndex = headers.findIndex(header => header.toString().toLowerCase() === habitName.toLowerCase());
+    
+    if (habitColumnIndex === -1) {
+      return { success: false, message: `❌ Không tìm thấy thói quen: ${habitName}` };
+    }
+    
+    // Tìm row cho ngày hiện tại
+    const today = new Date();
+    const todayString = Utilities.formatDate(today, Session.getScriptTimeZone(), 'yyyy-MM-dd');
+    
+    let targetRowIndex = -1;
+    for (let i = 1; i < data.length; i++) {
+      const rowDate = data[i][0];
+      if (rowDate && Utilities.formatDate(new Date(rowDate), Session.getScriptTimeZone(), 'yyyy-MM-dd') === todayString) {
+        targetRowIndex = i;
+        break;
+      }
+    }
+    
+    // Nếu không tìm thấy row cho hôm nay, tạo mới
+    if (targetRowIndex === -1) {
+      const newRow = new Array(headers.length).fill('');
+      newRow[0] = today; // Date column
+      sheet.appendRow(newRow);
+      targetRowIndex = sheet.getLastRow() - 1;
+    }
+    
+    // Cập nhật cell với giá trị 1 (completed)
+    const cellRange = sheet.getRange(targetRowIndex + 1, habitColumnIndex + 1);
+    cellRange.setValue(1);
+    
+    // Tính toán streak mới
+    const streak = calculateHabitStreak(data, habitColumnIndex, targetRowIndex);
+    
+    Logger.log(`✅ Habit completed: ${habitName}, streak: ${streak}`);
+    
+    return {
+      success: true,
+      message: `🎉 Đã hoàn thành "${habitName}"! ${streak > 1 ? `🔥 Streak: ${streak} ngày` : ''}`
+    };
+    
+  } catch (error) {
+    Logger.log(`❌ Error completing habit from Slack: ${error.message}`);
+    return { success: false, message: `❌ Lỗi: ${error.message}` };
+  }
+}
+
+/**
+  * Tạo response message cho Slack sau khi hoàn thành thói quen
+  */
+ function buildSlackResponseMessage(result, userId) {
+   if (!result.success) {
+     return { blocks: [] };
+   }
+   
+   try {
+     // Lấy dữ liệu mới nhất sau khi cập nhật
+     const today = new Date();
+     const data = analyzeHabits(today);
+     
+     const blocks = [];
+     
+     // Header với celebration
+     blocks.push({
+       type: 'section',
+       text: {
+         type: 'mrkdwn',
+         text: `🎉 *Habit Updated!*\n${result.message}`
+       }
+     });
+     
+     // Updated progress
+     const progressBar = buildSlackProgressBar(data.completionRate);
+     blocks.push({
+       type: 'section',
+       text: {
+         type: 'mrkdwn',
+         text: `*📊 Tiến độ mới:* ${data.completedHabits.length}/${data.habits.length} thói quen\n${progressBar}`
+       }
+     });
+     
+     // Perfect day achievement
+     if (data.isPerfectDay) {
+       blocks.push({
+         type: 'section',
+         text: {
+           type: 'mrkdwn',
+           text: '🏆 *PERFECT DAY ACHIEVED!* 🏆\nBạn đã hoàn thành tất cả thói quen hôm nay!'
+         }
+       });
+     }
+     
+     return { blocks };
+     
+   } catch (error) {
+     Logger.log(`❌ Error building response message: ${error.message}`);
+     return { blocks: [] };
+   }
+ }
+ 
+ /**
+  * Test function để kiểm tra Slack integration
+  */
 function testSlackIntegration() {
   Logger.log('🧪 Testing Slack Integration...');
   
@@ -1084,3 +1272,123 @@ function testSlackIntegration() {
   sendSlackReport(testData);
   Logger.log('✅ Slack test completed');
 }
+
+/**
+ * Test function để kiểm tra Slack interaction handling
+ */
+function testSlackInteraction() {
+  Logger.log('🧪 Testing Slack Interaction...');
+  
+  // Mock Slack interaction payload
+  const mockPayload = {
+    type: 'block_actions',
+    actions: [{
+      action_id: 'complete_habit_0',
+      value: 'complete_habit_Thiền_2025-01-07'
+    }],
+    user: {
+      id: 'U1234567890'
+    }
+  };
+  
+  const result = handleCompleteHabitFromSlack(mockPayload.actions[0].value, mockPayload.user.id);
+   Logger.log(`✅ Test result: ${JSON.stringify(result)}`);
+ }
+ 
+ /**
+  * Utility function để lấy Web App URL cho Slack configuration
+  */
+ function getWebAppUrl() {
+   const webAppUrl = ScriptApp.getService().getUrl();
+   Logger.log(`🔗 Web App URL: ${webAppUrl}`);
+   Logger.log('📋 Copy URL này và paste vào Slack App Interactivity settings');
+   return webAppUrl;
+ }
+ 
+ /**
+  * Comprehensive test cho toàn bộ Slack integration workflow
+  */
+ function testCompleteSlackWorkflow() {
+   Logger.log('🧪 Testing Complete Slack Workflow...');
+   
+   try {
+     // 1. Test gửi báo cáo với buttons
+     Logger.log('📤 Step 1: Testing Slack report with buttons...');
+     testSlackIntegration();
+     
+     // 2. Test xử lý button interaction
+     Logger.log('🔄 Step 2: Testing button interaction...');
+     testSlackInteraction();
+     
+     // 3. Test response message building
+     Logger.log('💬 Step 3: Testing response message...');
+     const mockResult = {
+       success: true,
+       message: '🎉 Đã hoàn thành "Test Habit"! 🔥 Streak: 5 ngày'
+     };
+     const responseMessage = buildSlackResponseMessage(mockResult, 'U1234567890');
+     Logger.log(`✅ Response message: ${JSON.stringify(responseMessage)}`);
+     
+     // 4. Hiển thị Web App URL
+     Logger.log('🔗 Step 4: Getting Web App URL...');
+     getWebAppUrl();
+     
+     Logger.log('✅ Complete Slack workflow test finished!');
+     Logger.log('📋 Next steps:');
+     Logger.log('   1. Deploy Web App với quyền "Anyone"');
+     Logger.log('   2. Copy Web App URL vào Slack App Interactivity settings');
+     Logger.log('   3. Test thực tế bằng cách gửi báo cáo và click buttons');
+     
+   } catch (error) {
+     Logger.log(`❌ Workflow test error: ${error.message}`);
+   }
+ }
+ 
+ /**
+  * Quick setup function để kiểm tra tất cả requirements
+  */
+ function checkSlackSetupRequirements() {
+   Logger.log('🔍 Checking Slack Setup Requirements...');
+   
+   const requirements = [];
+   
+   // Check CONFIG
+   if (!CONFIG.slackWebhookUrl || CONFIG.slackWebhookUrl.includes('YOUR/SLACK/WEBHOOK')) {
+     requirements.push('❌ Cần cập nhật slackWebhookUrl trong CONFIG');
+   } else {
+     requirements.push('✅ Slack Webhook URL configured');
+   }
+   
+   if (!CONFIG.slackChannel) {
+     requirements.push('❌ Cần cập nhật slackChannel trong CONFIG');
+   } else {
+     requirements.push('✅ Slack Channel configured');
+   }
+   
+   if (!CONFIG.enableSlack) {
+     requirements.push('⚠️ enableSlack = false (tính năng đang tắt)');
+   } else {
+     requirements.push('✅ Slack enabled');
+   }
+   
+   // Check Google Sheets access
+   try {
+     const sheet = SpreadsheetApp.openById(CONFIG.spreadsheetId);
+     requirements.push('✅ Google Sheets access OK');
+   } catch (error) {
+     requirements.push('❌ Không thể truy cập Google Sheets');
+   }
+   
+   // Display results
+   requirements.forEach(req => Logger.log(req));
+   
+   const allGood = requirements.every(req => req.startsWith('✅'));
+   if (allGood) {
+     Logger.log('🎉 Tất cả requirements đã sẵn sàng!');
+     Logger.log('🚀 Có thể proceed với Slack integration');
+   } else {
+     Logger.log('⚠️ Cần hoàn thành các requirements trên trước khi tiếp tục');
+   }
+   
+   return allGood;
+ }
