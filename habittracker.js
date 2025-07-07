@@ -26,7 +26,7 @@ const CONFIG = {
   emailTo: 'quoc.nguyen3@hoanmy.com', // Thay email của bạn
   
   // Slack settings
-  slackWebhookUrl: 'https://hooks.slack.com/services/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', // ⚠️ CẦN CẬP NHẬT: Thay bằng Slack webhook URL hợp lệ của bạn
+  slackWebhookUrl: 'https://hooks.slack.com/services/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', // ⚠️ CẦN CẬP NHẬT: Thay bằng Slack webhook URL hợp lệ của bạn
   slackChannel: '#habit', // Kênh Slack
   enableSlack: true, // Tạm tắt Slack cho đến khi có webhook URL hợp lệ
   
@@ -1139,7 +1139,7 @@ function buildSlackProgressBar(percentage) {
 /**
  * Xử lý Slack interactions (button clicks)
  * Hàm này cần được deploy như Web App để nhận POST requests từ Slack
- * FIXED: Tối ưu để tránh timeout 3 giây
+ * FIXED: Tối ưu để tránh timeout 3 giây - trả về response ngay lập tức
  */
 function doPost(e) {
   const startTime = new Date().getTime();
@@ -1147,25 +1147,22 @@ function doPost(e) {
   try {
     Logger.log('📨 Received Slack interaction');
     
-    // Trả về response nhanh trước để tránh timeout
-    const quickResponse = ContentService
-      .createTextOutput(JSON.stringify({
-        response_type: 'ephemeral',
-        text: '⏳ Đang xử lý yêu cầu...'
-      }))
-      .setMimeType(ContentService.MimeType.JSON);
-    
-    // Parse Slack payload
+    // Parse Slack payload nhanh
     let payload;
     try {
-      payload = JSON.parse(e.parameter.payload || e.postData.contents);
+      const payloadString = e.parameter.payload || e.postData.contents;
+      payload = JSON.parse(payloadString);
     } catch (parseError) {
       Logger.log(`❌ Error parsing payload: ${parseError.message}`);
       return ContentService
-        .createTextOutput(JSON.stringify({ text: '❌ Lỗi xử lý dữ liệu' }))
+        .createTextOutput(JSON.stringify({ 
+          response_type: 'ephemeral',
+          text: '❌ Lỗi xử lý dữ liệu' 
+        }))
         .setMimeType(ContentService.MimeType.JSON);
     }
     
+    // Xử lý block actions
     if (payload.type === 'block_actions') {
       const action = payload.actions[0];
       const actionId = action.action_id;
@@ -1173,16 +1170,16 @@ function doPost(e) {
       
       Logger.log(`🔄 Processing action: ${actionId}, value: ${value}`);
       
-      // Xử lý complete habit action
+      // Xử lý complete habit action với timeout protection
       if (actionId.startsWith('complete_habit_')) {
         try {
-          // Xử lý nhanh và đơn giản để tránh timeout
-          const result = handleCompleteHabitFromSlackFast(value, payload.user.id);
+          // Xử lý siêu nhanh - chỉ cập nhật cell, không tính toán phức tạp
+          const result = handleCompleteHabitUltraFast(value);
           
           const processingTime = new Date().getTime() - startTime;
-          Logger.log(`⏱️ Processing time: ${processingTime}ms`);
+          Logger.log(`⚡ Ultra fast processing time: ${processingTime}ms`);
           
-          // Trả về response đơn giản
+          // Trả về response ngay lập tức
           return ContentService
             .createTextOutput(JSON.stringify({
               response_type: 'in_channel',
@@ -1201,6 +1198,13 @@ function doPost(e) {
             .setMimeType(ContentService.MimeType.JSON);
         }
       }
+    }
+    
+    // URL verification cho Slack App setup
+    if (payload.type === 'url_verification') {
+      return ContentService
+        .createTextOutput(payload.challenge)
+        .setMimeType(ContentService.MimeType.TEXT);
     }
     
     // Default response
@@ -1225,6 +1229,86 @@ function doPost(e) {
 }
 
 /**
+ * Xử lý việc đánh dấu hoàn thành thói quen từ Slack (phiên bản siêu nhanh)
+ * Tối ưu tối đa để tránh timeout 3 giây - chỉ cập nhật cell, không tính toán phức tạp
+ */
+function handleCompleteHabitUltraFast(value) {
+  try {
+    Logger.log(`⚡ Ultra fast processing: ${value}`);
+    
+    // Parse value: complete_habit_{habitName}_{date}
+    const parts = value.split('_');
+    if (parts.length < 4) {
+      return { success: false, message: '❌ Format value không hợp lệ' };
+    }
+    
+    const habitName = parts.slice(2, -1).join('_');
+    Logger.log(`🎯 Habit: ${habitName}`);
+    
+    // Mở sheet trực tiếp
+    const sheet = SpreadsheetApp.openById(CONFIG.spreadsheetId).getSheetByName(CONFIG.sheetName);
+    
+    // Lấy ngày hiện tại
+    const today = new Date();
+    const todayDay = today.getDate();
+    
+    // Lấy chỉ date row (row 15) để tìm cột ngày
+    const dateRowRange = sheet.getRange('E15:AI15'); // Từ cột E đến AI
+    const dateRowValues = dateRowRange.getValues()[0];
+    
+    // Tìm cột cho ngày hôm nay
+    let todayColIndex = -1;
+    for (let i = 0; i < dateRowValues.length; i++) {
+      if (dateRowValues[i] == todayDay) {
+        todayColIndex = i + 4; // +4 vì cột E là index 4 (A=0, B=1, C=2, D=3, E=4)
+        Logger.log(`🎯 Found today ${todayDay} at column index: ${todayColIndex} (column ${String.fromCharCode(65 + todayColIndex)})`);
+        break;
+      }
+    }
+    
+    if (todayColIndex === -1) {
+      Logger.log(`❌ Available dates in row 15: ${dateRowValues}`);
+      return { success: false, message: `❌ Không tìm thấy cột cho ngày ${todayDay}` };
+    }
+    
+    // Lấy danh sách tên habits từ cột C (từ row 16 trở đi)
+    const habitNamesRange = sheet.getRange('C16:C31'); // Giả sử tối đa 16 habits
+    const habitNames = habitNamesRange.getValues().flat();
+    
+    // Tìm row index cho habit
+    let habitRowIndex = -1;
+    for (let i = 0; i < habitNames.length; i++) {
+      if (habitNames[i] && habitNames[i].toString().toLowerCase().trim() === habitName.toLowerCase().trim()) {
+        habitRowIndex = i + 16; // +16 vì bắt đầu từ row 16
+        break;
+      }
+    }
+    
+    if (habitRowIndex === -1) {
+      return { success: false, message: `❌ Không tìm thấy thói quen: ${habitName}` };
+    }
+    
+    // Tính toán cell address và cập nhật
+    const targetCol = String.fromCharCode(65 + todayColIndex); // A=65, B=66, C=67...
+    const cellAddress = `${targetCol}${habitRowIndex}`;
+    
+    // Cập nhật cell trực tiếp với giá trị TRUE
+    sheet.getRange(cellAddress).setValue(true);
+    
+    Logger.log(`✅ Updated ${cellAddress} = TRUE`);
+    
+    return {
+      success: true,
+      message: `🎉 Đã hoàn thành "${habitName}"! ✨`
+    };
+    
+  } catch (error) {
+    Logger.log(`❌ Ultra fast error: ${error.message}`);
+    return { success: false, message: `❌ Lỗi: ${error.message}` };
+  }
+}
+
+/**
  * Xử lý việc đánh dấu hoàn thành thói quen từ Slack (phiên bản nhanh)
  * Tối ưu để tránh timeout 3 giây
  */
@@ -1242,20 +1326,13 @@ function handleCompleteHabitFromSlackFast(value, userId) {
     // Mở Google Sheet với timeout protection
     const sheet = SpreadsheetApp.openById(CONFIG.spreadsheetId).getSheetByName(CONFIG.sheetName);
     
-    // Lấy chỉ dữ liệu cần thiết thay vì toàn bộ sheet
-    const headerRange = sheet.getRange('C14:AI15'); // Chỉ lấy header và date row
-    const headerData = headerRange.getValues();
-    const headers = headerData[0];
-    const dateRow = headerData[1];
+    // FIXED: Sử dụng cấu trúc đúng như trong sendDailyHabitReport
+    // Lấy dữ liệu từ C14:AI31 (toàn bộ vùng dữ liệu)
+    const dataRange = sheet.getRange(CONFIG.dataRange); // C14:AI31
+    const values = dataRange.getValues();
     
-    // Tìm habit column
-    const habitColumnIndex = headers.findIndex(header => 
-      header.toString().toLowerCase().trim() === habitName.toLowerCase().trim()
-    );
-    
-    if (habitColumnIndex === -1) {
-      return { success: false, message: `❌ Không tìm thấy thói quen: ${habitName}` };
-    }
+    // Row 15 trong sheet = index 1 trong array (vì bắt đầu từ C14)
+    const dateRow = values[CONFIG.dateRow - 14]; // Row 15 - 14 = index 1
     
     // Tìm column cho ngày hôm nay
     const today = new Date();
@@ -1265,24 +1342,41 @@ function handleCompleteHabitFromSlackFast(value, userId) {
     for (let col = 0; col < dateRow.length; col++) {
       if (dateRow[col] == todayDay) {
         todayColIndex = col;
+        Logger.log(`🎯 Found today ${todayDay} at data column index: ${todayColIndex}`);
         break;
       }
     }
     
     if (todayColIndex === -1) {
+      Logger.log(`❌ Available dates in date row: ${dateRow}`);
       return { success: false, message: `❌ Không tìm thấy cột cho ngày ${todayDay}` };
     }
     
-    // Tính toán row index cho habit
-    const habitRowIndex = 16 + habitColumnIndex; // Row 16 là bắt đầu data habits
-    const targetCol = String.fromCharCode(67 + todayColIndex); // C = 67, D = 68, etc.
+    // Tìm habit row (bắt đầu từ row 16 = index 2 trong array)
+    let habitRowIndex = -1;
+    for (let row = 2; row < values.length; row++) {
+      const habitNameInSheet = values[row][0]; // Cột C = index 0 trong range C14:AI31
+      if (habitNameInSheet && habitNameInSheet.toString().toLowerCase().trim() === habitName.toLowerCase().trim()) {
+        habitRowIndex = row + 14; // +14 vì array bắt đầu từ row 14
+        Logger.log(`🎯 Found habit "${habitName}" at row: ${habitRowIndex}`);
+        break;
+      }
+    }
+    
+    if (habitRowIndex === -1) {
+      return { success: false, message: `❌ Không tìm thấy thói quen: ${habitName}` };
+    }
+    
+    // Tính toán cell address: cột bắt đầu từ E (index 4) + todayColIndex
+    const targetColIndex = 4 + todayColIndex; // E=4, F=5, G=6...
+    const targetCol = String.fromCharCode(65 + targetColIndex); // A=65, B=66, C=67...
     
     // Cập nhật cell trực tiếp
-    const cellAddress = `${targetCol}${habitRowIndex}`;
-    const targetCell = sheet.getRange(cellAddress);
-    targetCell.setValue(1);
-    
-    Logger.log(`✅ Updated cell ${cellAddress} = 1`);
+     const cellAddress = `${targetCol}${habitRowIndex}`;
+     const targetCell = sheet.getRange(cellAddress);
+     targetCell.setValue(true);
+     
+     Logger.log(`✅ Updated cell ${cellAddress} = TRUE for habit "${habitName}" on day ${todayDay}`);
     
     return {
       success: true,
@@ -1469,6 +1563,99 @@ function testSlackInteraction() {
    Logger.log(`✅ Test result: ${JSON.stringify(result)}`);
  }
  
+ /**
+  * Test function để kiểm tra hiệu suất Ultra Fast function
+  */
+ function testUltraFastPerformance() {
+   Logger.log('⚡ Testing Ultra Fast Performance...');
+   
+   const testValues = [
+     'complete_habit_Đọc sách_2025-01-07',
+     'complete_habit_Tập thể dục_2025-01-07',
+     'complete_habit_Thiền_2025-01-07'
+   ];
+   
+   testValues.forEach(value => {
+     const startTime = new Date().getTime();
+     
+     try {
+       const result = handleCompleteHabitUltraFast(value);
+       const processingTime = new Date().getTime() - startTime;
+       
+       Logger.log(`⚡ ${value}: ${result.success ? '✅' : '❌'} (${processingTime}ms)`);
+       Logger.log(`   Message: ${result.message}`);
+       
+       if (processingTime > 2000) {
+         Logger.log(`⚠️ WARNING: Processing time ${processingTime}ms > 2000ms`);
+       }
+       
+     } catch (error) {
+       const processingTime = new Date().getTime() - startTime;
+       Logger.log(`❌ ${value}: Error after ${processingTime}ms - ${error.message}`);
+     }
+   });
+   
+   Logger.log('✅ Ultra Fast Performance test completed');
+ }
+ 
+ /**
+  * Test logic tính toán cột ngày để đảm bảo tick đúng ngày
+  */
+ function testDateColumnLogic() {
+   Logger.log('🧪 Testing Date Column Logic...');
+   
+   try {
+     const sheet = SpreadsheetApp.openById(CONFIG.spreadsheetId).getSheetByName(CONFIG.sheetName);
+     const today = new Date();
+     const todayDay = today.getDate();
+     
+     Logger.log(`📅 Today is: ${today.toDateString()} (day ${todayDay})`);
+     
+     // Test với range E15:AI15 (như trong handleCompleteHabitUltraFast)
+     const dateRowRange = sheet.getRange('E15:AI15');
+     const dateRowValues = dateRowRange.getValues()[0];
+     
+     Logger.log('📊 Date values in E15:AI15:', dateRowValues);
+     
+     let foundIndex = -1;
+     for (let i = 0; i < dateRowValues.length; i++) {
+       if (dateRowValues[i] == todayDay) {
+         foundIndex = i;
+         const colIndex = i + 4; // E=4
+         const colLetter = String.fromCharCode(65 + colIndex);
+         Logger.log(`🎯 Found today (${todayDay}) at:`);
+         Logger.log(`   - Array index: ${i}`);
+         Logger.log(`   - Column index: ${colIndex}`);
+         Logger.log(`   - Column letter: ${colLetter}`);
+         Logger.log(`   - Expected cell for habit in row 16: ${colLetter}16`);
+         break;
+       }
+     }
+     
+     if (foundIndex === -1) {
+       Logger.log(`❌ Today (${todayDay}) not found in date row!`);
+       Logger.log('📊 Available dates:', dateRowValues.filter(d => d !== ''));
+     } else {
+       // Kiểm tra giá trị thực tế trong sheet
+       const actualTodayCol = String.fromCharCode(65 + foundIndex + 4);
+       const actualValue = sheet.getRange(`${actualTodayCol}15`).getValue();
+       Logger.log(`🔍 Actual value in ${actualTodayCol}15: ${actualValue}`);
+       
+       // Test với habit đầu tiên
+       const firstHabitRange = sheet.getRange('C16');
+       const firstHabitName = firstHabitRange.getValue();
+       if (firstHabitName) {
+         Logger.log(`🧪 Testing with first habit: "${firstHabitName}"`);
+         const testCellAddress = `${actualTodayCol}16`;
+         Logger.log(`📍 Would update cell: ${testCellAddress}`);
+       }
+     }
+     
+   } catch (error) {
+     Logger.log(`💥 Error testing date column logic: ${error.message}`);
+   }
+ }
+
  /**
   * Utility function để lấy Web App URL cho Slack configuration
   */
