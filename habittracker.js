@@ -582,25 +582,123 @@ function sendEmailWithRetry(emailConfig, maxRetries = 3) {
 }
 
 /**
- * Tạo trigger tự động hằng ngày
+ * Tạo trigger tự động gửi báo cáo hàng ngày lúc 8:00 sáng
  */
 function createDailyTrigger() {
-  // Xóa trigger cũ trước
-  const triggers = ScriptApp.getProjectTriggers();
-  triggers.forEach(trigger => {
-    if (trigger.getHandlerFunction() === 'sendDailyHabitReport') {
-      ScriptApp.deleteTrigger(trigger);
-    }
-  });
-  
-  // Tạo trigger mới - gửi lúc 8:00 sáng hằng ngày
-  ScriptApp.newTrigger('sendDailyHabitReport')
-    .timeBased()
-    .everyDays(1)
-    .atHour(8)
-    .create();
+  try {
+    // Xóa trigger cũ nếu có
+    const triggers = ScriptApp.getProjectTriggers();
+    triggers.forEach(trigger => {
+      if (trigger.getHandlerFunction() === 'sendDailyHabitReport') {
+        ScriptApp.deleteTrigger(trigger);
+      }
+    });
     
-  Logger.log('✅ Đã tạo trigger hằng ngày lúc 8:00 sáng');
+    // Tạo trigger mới
+    ScriptApp.newTrigger('sendDailyHabitReport')
+      .timeBased()
+      .everyDays(1)
+      .atHour(8)
+      .create();
+    
+    Logger.log('✅ Đã tạo trigger gửi báo cáo hàng ngày lúc 8:00 sáng');
+    
+  } catch (error) {
+    Logger.log(`❌ Lỗi tạo trigger: ${error.message}`);
+  }
+}
+
+/**
+ * Tạo nhiều trigger tự động gửi báo cáo trong ngày
+ * Sáng 7:00, Trưa 11:30, Tối 19:00
+ */
+function createMultipleDailyTriggers() {
+  try {
+    // Xóa tất cả trigger cũ
+    const triggers = ScriptApp.getProjectTriggers();
+    triggers.forEach(trigger => {
+      if (trigger.getHandlerFunction() === 'sendDailyHabitReport') {
+        ScriptApp.deleteTrigger(trigger);
+      }
+    });
+    
+    // Tạo trigger sáng 7:00
+    ScriptApp.newTrigger('sendDailyHabitReport')
+      .timeBased()
+      .everyDays(1)
+      .atHour(7)
+      .create();
+    
+    // Tạo trigger trưa 11:30
+    ScriptApp.newTrigger('sendDailyHabitReport')
+      .timeBased()
+      .everyDays(1)
+      .atHour(11)
+      .nearMinute(30)
+      .create();
+    
+    // Tạo trigger tối 19:00
+    ScriptApp.newTrigger('sendDailyHabitReport')
+      .timeBased()
+      .everyDays(1)
+      .atHour(21)
+      .create();
+    
+    Logger.log('✅ Đã tạo 3 trigger gửi báo cáo:');
+    Logger.log('   - Sáng 7:00');
+    Logger.log('   - Trưa 11:30');
+    Logger.log('   - Tối 19:00');
+    
+  } catch (error) {
+    Logger.log(`❌ Lỗi tạo trigger: ${error.message}`);
+  }
+}
+
+/**
+ * Xóa tất cả trigger tự động
+ */
+function deleteAllTriggers() {
+  try {
+    const triggers = ScriptApp.getProjectTriggers();
+    let deletedCount = 0;
+    
+    triggers.forEach(trigger => {
+      if (trigger.getHandlerFunction() === 'sendDailyHabitReport') {
+        ScriptApp.deleteTrigger(trigger);
+        deletedCount++;
+      }
+    });
+    
+    Logger.log(`✅ Đã xóa ${deletedCount} trigger`);
+    
+  } catch (error) {
+    Logger.log(`❌ Lỗi xóa trigger: ${error.message}`);
+  }
+}
+
+/**
+ * Kiểm tra danh sách trigger hiện tại
+ */
+function listCurrentTriggers() {
+  try {
+    const triggers = ScriptApp.getProjectTriggers();
+    const habitTriggers = triggers.filter(trigger => 
+      trigger.getHandlerFunction() === 'sendDailyHabitReport'
+    );
+    
+    Logger.log(`📋 Có ${habitTriggers.length} trigger đang hoạt động:`);
+    
+    habitTriggers.forEach((trigger, index) => {
+      const eventType = trigger.getEventType();
+      if (eventType === ScriptApp.EventType.CLOCK) {
+        // Không thể lấy thông tin chi tiết về thời gian từ trigger object
+        Logger.log(`   ${index + 1}. Trigger ID: ${trigger.getUniqueId()}`);
+      }
+    });
+    
+  } catch (error) {
+    Logger.log(`❌ Lỗi kiểm tra trigger: ${error.message}`);
+  }
 }
 
 /**
@@ -610,15 +708,52 @@ function testContributionGrid() {
    try {
      Logger.log('🧪 Testing Contribution Grid Feature...');
      
+     // Define CONFIG locally (same as in sendDailyHabitReport)
+     const CONFIG = {
+       spreadsheetId: '1TrFiuWnxOqh7UjxRRIEaF6DFRRutdNdO-OxBRGC9Oho',
+       sheetName: 'habit',
+       dataRange: 'C14:AI31',
+       monthYearCell: 'C9',
+       dayOfWeekRow: 14,
+       dateRow: 15,
+       habitNameCol: 'C',
+       dataStartCol: 'E',
+       debugMode: true
+     };
+     
      // Open spreadsheet
-     const sheet = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID).getSheetByName(CONFIG.SHEET_NAME);
+     const ss = SpreadsheetApp.openById(CONFIG.spreadsheetId);
+     const sheet = ss.getSheetByName(CONFIG.sheetName);
      if (!sheet) {
-       throw new Error(`Sheet "${CONFIG.SHEET_NAME}" not found`);
+       throw new Error(`Sheet "${CONFIG.sheetName}" not found`);
+     }
+     
+     Logger.log('✅ Sheet opened successfully');
+     
+     // Get today's column index
+     const today = new Date();
+     const todayDay = today.getDate();
+     
+     const dataRange = sheet.getRange(CONFIG.dataRange);
+     const values = dataRange.getValues();
+     const dateRow = values[CONFIG.dateRow - 14]; // Row 15 in sheet = index 1 in array
+     
+     let todayColIndex = -1;
+     for (let col = 0; col < dateRow.length; col++) {
+       if (dateRow[col] == todayDay) {
+         todayColIndex = col;
+         break;
+       }
+     }
+     
+     if (todayColIndex === -1) {
+       Logger.log(`⚠️ Today's column not found for day ${todayDay}, using first column for test`);
+       todayColIndex = 0;
      }
      
      // Get habits using existing analyzeHabits function
-     const habits = analyzeHabits(sheet, CONFIG);
-     Logger.log(`📊 Found ${habits.completedHabits.length + habits.pendingHabits.length} habits`);
+     const habits = analyzeHabits(values, todayColIndex, CONFIG);
+     Logger.log(`📊 Found ${habits.length} habits`);
      
      // Test contribution grid
      const colors = {
@@ -626,19 +761,19 @@ function testContributionGrid() {
        headerSubtitle: '#666666'
      };
      
-     const allHabits = [...habits.completedHabits, ...habits.pendingHabits];
      const contributionGrid = buildContributionGrid(
        sheet, 
-       allHabits, 
+       habits, 
        CONFIG, 
        colors, 
-       habits.isPerfectDay
+       false // isPerfectDay
      );
      
      Logger.log('✅ Contribution grid generated successfully');
      Logger.log(`📏 Grid HTML length: ${contributionGrid.length} characters`);
      
-     // Test email with new feature
+     // Test complete - call main function
+     Logger.log('🚀 Running full daily report...');
      sendDailyHabitReport();
      
    } catch (error) {

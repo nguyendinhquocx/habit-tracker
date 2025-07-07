@@ -53,8 +53,21 @@ testContributionGrid();
 ```
 
 #### Tạo trigger tự động:
+
+**Trigger đơn (8:00 sáng):**
 ```javascript
 createDailyTrigger(); // Gửi báo cáo lúc 8:00 sáng hàng ngày
+```
+
+**Trigger nhiều lần trong ngày (7:00, 11:30, 19:00):**
+```javascript
+createMultipleDailyTriggers(); // Gửi báo cáo 3 lần/ngày
+```
+
+**Quản lý trigger:**
+```javascript
+listCurrentTriggers();  // Kiểm tra trigger đang hoạt động
+deleteAllTriggers();    // Xóa tất cả trigger
 ```
 
 ## 📊 Cấu trúc Google Sheet
