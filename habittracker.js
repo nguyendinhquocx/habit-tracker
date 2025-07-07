@@ -26,9 +26,9 @@ function sendDailyHabitReport() {
     emailTo: 'quoc.nguyen3@hoanmy.com', // Thay email của bạn
     
     // Slack settings
-    slackWebhookUrl: 'https://hooks.slack.com/services/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', // Thay bằng Slack webhook URL của bạn
+    slackWebhookUrl: 'https://hooks.slack.com/services/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', // ⚠️ CẦN CẬP NHẬT: Thay bằng Slack webhook URL hợp lệ của bạn
     slackChannel: '#habit', // Kênh Slack
-    enableSlack: true, // Bật/tắt gửi Slack
+    enableSlack: true, // Tạm tắt Slack cho đến khi có webhook URL hợp lệ
     
     // Icons (minimal design)
     completedIcon: 'https://cdn-icons-png.flaticon.com/128/7046/7046053.png',
@@ -230,22 +230,26 @@ function sendDailyHabitReport() {
     });
 
     // Gửi Slack (nếu được bật)
-    if (CONFIG.enableSlack) {
-      sendSlackReport({
-        habits: habits,
-        completedHabits: completedHabits,
-        pendingHabits: pendingHabits,
-        completionRate: completionRate,
-        isPerfectDay: isPerfectDay,
-        detailedDate: detailedDate,
-        config: CONFIG
-      });
+    if (CONFIG.enableSlack && CONFIG.slackWebhookUrl) {
+      try {
+        sendSlackReport({
+          habits: habits,
+          completedHabits: completedHabits,
+          pendingHabits: pendingHabits,
+          completionRate: completionRate,
+          isPerfectDay: isPerfectDay,
+          detailedDate: detailedDate,
+          config: CONFIG
+        });
+        Logger.log(`✅ Slack habit report đã được gửi thành công`);
+      } catch (error) {
+        Logger.log(`❌ Lỗi khi gửi Slack: ${error.message}`);
+      }
+    } else if (CONFIG.enableSlack && !CONFIG.slackWebhookUrl) {
+      Logger.log(`⚠️ Slack được bật nhưng chưa có webhook URL`);
     }
 
     Logger.log(`✅ Email habit report đã được gửi thành công`);
-    if (CONFIG.enableSlack) {
-      Logger.log(`✅ Slack habit report đã được gửi thành công`);
-    }
     Logger.log(`📊 Tổng kết: ${completedHabits.length}/${habits.length} thói quen hoàn thành (${Math.round(completionRate)}%)`);
 
   } catch (error) {
@@ -402,11 +406,11 @@ function buildContributionGrid(sheet, habits, CONFIG, colors, isPerfectDay) {
     startDate.setDate(startDate.getDate() - 90); // Show last 90 days
     
     // Get all data from sheet
-     const dataRange = sheet.getRange(CONFIG.DATA_RANGE);
+     const dataRange = sheet.getRange(CONFIG.dataRange);
      const allData = dataRange.getValues();
      
      // Find date row
-     const dateRowIndex = CONFIG.DATE_ROW - 14; // Row 15 in sheet = index 14 in array
+     const dateRowIndex = CONFIG.dateRow - 14; // Row 15 in sheet = index 1 in array
     const dateRow = allData[dateRowIndex];
     
     // Build grid data
