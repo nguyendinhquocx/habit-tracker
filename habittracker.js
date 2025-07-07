@@ -28,7 +28,7 @@ function sendDailyHabitReport() {
     // Icons (minimal design)
     completedIcon: 'https://cdn-icons-png.flaticon.com/128/7046/7046053.png',
     pendingIcon: 'https://cdn-icons-png.flaticon.com/128/17694/17694317.png',
-    streakIcon: 'https://cdn-icons-png.flaticon.com/128/2956/2956792.png',
+    streakIcon: 'https://cdn-icons-png.flaticon.com/128/18245/18245248.png', // Updated star icon
     calendarIcon: 'https://cdn-icons-png.flaticon.com/128/3239/3239948.png',
     
     // Perfect day icons (green when all completed)
@@ -133,6 +133,9 @@ function sendDailyHabitReport() {
     
     // Progress bar
     const progressBar = buildProgressBar(completionRate, isPerfectDay);
+    
+    // GitHub-style contribution visualization
+    const contributionGrid = buildContributionGrid(sheet, habits, CONFIG, colors, isPerfectDay);
 
     // HTML Email Template
     const htmlBody = `
@@ -181,6 +184,9 @@ function sendDailyHabitReport() {
               </span>
             </div>
           </div>
+
+          <!-- GitHub-style Contribution Grid -->
+          ${contributionGrid}
 
           <!-- Completed Habits -->
           ${completedSection}
@@ -365,6 +371,154 @@ function buildHabitSection(habits, title, icon, titleColor, CONFIG) {
 }
 
 /**
+ * Build GitHub-style contribution grid
+ */
+function buildContributionGrid(sheet, habits, CONFIG, colors, isPerfectDay) {
+  try {
+    const today = new Date();
+    const endDate = new Date(today);
+    const startDate = new Date(today);
+    startDate.setDate(startDate.getDate() - 90); // Show last 90 days
+    
+    // Get all data from sheet
+     const dataRange = sheet.getRange(CONFIG.DATA_RANGE);
+     const allData = dataRange.getValues();
+     
+     // Find date row
+     const dateRowIndex = CONFIG.DATE_ROW - 14; // Row 15 in sheet = index 14 in array
+    const dateRow = allData[dateRowIndex];
+    
+    // Build grid data
+    const gridData = [];
+    const currentDate = new Date(startDate);
+    
+    while (currentDate <= endDate) {
+      const currentDay = currentDate.getDate();
+      
+      // Find column for this date
+      let dateColIndex = -1;
+      for (let col = 0; col < dateRow.length; col++) {
+        const cellValue = dateRow[col];
+        if (cellValue == currentDay) {
+          dateColIndex = col;
+          break;
+        }
+      }
+      
+      let completionCount = 0;
+      if (dateColIndex >= 0) {
+        // Count completed habits for this date
+        for (let row = 2; row < allData.length; row++) {
+          const habitName = allData[row][0];
+          if (!habitName || habitName.toString().trim() === '') continue;
+          
+          const cellValue = allData[row][dateColIndex];
+          const isCompleted = cellValue === true || 
+                             cellValue === 'TRUE' || 
+                             cellValue === '✓' || 
+                             cellValue === 'x' || 
+                             cellValue === 'X' ||
+                             cellValue === 1;
+          
+          if (isCompleted) {
+            completionCount++;
+          }
+        }
+      }
+      
+      const completionRate = habits.length > 0 ? (completionCount / habits.length) : 0;
+      gridData.push({
+        date: new Date(currentDate),
+        completionRate: completionRate,
+        completionCount: completionCount,
+        totalHabits: habits.length
+      });
+      
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+    
+    // Build HTML grid
+    let gridHtml = `
+      <div style="margin-bottom: 32px; background-color: #ffffff; border: 1px solid #e9ecef; border-radius: 12px; padding: 24px;">
+        <h3 style="margin: 0 0 16px; font-size: 16px; font-weight: 600; color: ${colors.sectionTitle}; text-align: center;">
+          Lịch sử thói quen (90 ngày gần nhất)
+        </h3>
+        <div style="display: flex; flex-wrap: wrap; gap: 2px; justify-content: center; max-width: 600px; margin: 0 auto;">
+    `;
+    
+    gridData.forEach(day => {
+      const intensity = getContributionIntensity(day.completionRate);
+      const color = getContributionColor(intensity, isPerfectDay && day.date.toDateString() === today.toDateString());
+      const tooltip = `${day.date.getDate()}/${day.date.getMonth() + 1}: ${day.completionCount}/${day.totalHabits} thói quen`;
+      
+      gridHtml += `
+        <div style="
+          width: 12px; 
+          height: 12px; 
+          background-color: ${color}; 
+          border-radius: 2px;
+          border: 1px solid #e1e4e8;
+          title: '${tooltip}';
+        "></div>
+      `;
+    });
+    
+    gridHtml += `
+        </div>
+        <div style="display: flex; justify-content: center; align-items: center; margin-top: 16px; font-size: 12px; color: ${colors.headerSubtitle};">
+          <span style="margin-right: 8px;">Ít</span>
+          <div style="display: flex; gap: 2px;">
+            <div style="width: 10px; height: 10px; background-color: #ebedf0; border-radius: 2px;"></div>
+            <div style="width: 10px; height: 10px; background-color: #c6e48b; border-radius: 2px;"></div>
+            <div style="width: 10px; height: 10px; background-color: #7bc96f; border-radius: 2px;"></div>
+            <div style="width: 10px; height: 10px; background-color: #239a3b; border-radius: 2px;"></div>
+            <div style="width: 10px; height: 10px; background-color: #196127; border-radius: 2px;"></div>
+          </div>
+          <span style="margin-left: 8px;">Nhiều</span>
+        </div>
+      </div>
+    `;
+    
+    return gridHtml;
+    
+  } catch (error) {
+    Logger.log(`❌ Error building contribution grid: ${error.message}`);
+    return '';
+  }
+}
+
+/**
+ * Get contribution intensity level (0-4)
+ */
+function getContributionIntensity(completionRate) {
+  if (completionRate === 0) return 0;
+  if (completionRate <= 0.25) return 1;
+  if (completionRate <= 0.5) return 2;
+  if (completionRate <= 0.75) return 3;
+  return 4;
+}
+
+/**
+ * Get contribution color based on intensity
+ */
+function getContributionColor(intensity, isToday = false) {
+  const colors = {
+    0: '#ebedf0',  // No activity
+    1: '#c6e48b',  // Low activity
+    2: '#7bc96f',  // Medium-low activity
+    3: '#239a3b',  // Medium-high activity
+    4: '#196127'   // High activity
+  };
+  
+  // Highlight today with a special border or slightly different shade
+  if (isToday && intensity > 0) {
+    return colors[intensity];
+  }
+  
+  return colors[intensity] || colors[0];
+}
+
+/**
  * Xây dựng progress bar
  */
 function buildProgressBar(percentage, isPerfectDay) {
@@ -448,6 +602,50 @@ function createDailyTrigger() {
     
   Logger.log('✅ Đã tạo trigger hằng ngày lúc 8:00 sáng');
 }
+
+/**
+ * Test function for new contribution grid feature
+ */
+function testContributionGrid() {
+   try {
+     Logger.log('🧪 Testing Contribution Grid Feature...');
+     
+     // Open spreadsheet
+     const sheet = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID).getSheetByName(CONFIG.SHEET_NAME);
+     if (!sheet) {
+       throw new Error(`Sheet "${CONFIG.SHEET_NAME}" not found`);
+     }
+     
+     // Get habits using existing analyzeHabits function
+     const habits = analyzeHabits(sheet, CONFIG);
+     Logger.log(`📊 Found ${habits.completedHabits.length + habits.pendingHabits.length} habits`);
+     
+     // Test contribution grid
+     const colors = {
+       sectionTitle: '#1a1a1a',
+       headerSubtitle: '#666666'
+     };
+     
+     const allHabits = [...habits.completedHabits, ...habits.pendingHabits];
+     const contributionGrid = buildContributionGrid(
+       sheet, 
+       allHabits, 
+       CONFIG, 
+       colors, 
+       habits.isPerfectDay
+     );
+     
+     Logger.log('✅ Contribution grid generated successfully');
+     Logger.log(`📏 Grid HTML length: ${contributionGrid.length} characters`);
+     
+     // Test email with new feature
+     sendDailyHabitReport();
+     
+   } catch (error) {
+     Logger.log(`❌ Test failed: ${error.message}`);
+     Logger.log(`📍 Stack trace: ${error.stack}`);
+   }
+ }
 
 /**
  * ENHANCED: Test function với debug chi tiết
