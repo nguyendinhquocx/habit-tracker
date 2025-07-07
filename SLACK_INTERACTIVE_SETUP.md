@@ -22,6 +22,13 @@ Tính năng này cho phép tương tác hai chiều giữa Slack và Google Shee
    - Click "Deploy"
    - **Copy Web App URL** (dạng: `https://script.google.com/macros/s/ABC.../exec`)
 
+### ⚠️ Khắc phục lỗi "Không tìm thấy hàm tập lệnh: doGet"
+
+Nếu gặp lỗi này khi deploy:
+- **Nguyên nhân**: Google Apps Script yêu cầu hàm `doGet()` để xử lý HTTP GET requests
+- **Giải pháp**: Hàm `doGet()` đã được thêm vào code, deploy lại Web App
+- **Kiểm tra**: Truy cập Web App URL để xem trang xác nhận hoạt động
+
 ### Bước 2: Cấu hình Slack App với Interactivity
 
 1. **Truy cập Slack API:**

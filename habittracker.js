@@ -899,6 +899,63 @@ function debugSheetStructure() {
 }
 
 /**
+ * Xử lý HTTP GET requests cho Web App
+ * @param {Object} e - Event object chứa parameters
+ * @return {HtmlOutput} HTML response
+ */
+function doGet(e) {
+  // Trả về trang HTML đơn giản cho Web App
+  const html = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>Habit Tracker</title>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <style>
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 48px 24px;
+            background: #ffffff;
+            color: #000000;
+          }
+          .header {
+            text-align: center;
+            margin-bottom: 48px;
+          }
+          .status {
+            background: #f8f9fa;
+            padding: 24px;
+            border-radius: 12px;
+            border: 1px solid #e9ecef;
+          }
+          .success {
+            color: #28a745;
+            font-weight: 500;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>🎯 Habit Tracker</h1>
+          <p>Google Apps Script Web App đã được triển khai thành công</p>
+        </div>
+        <div class="status">
+          <p class="success">✅ Web App đang hoạt động bình thường</p>
+          <p>Slack Interactive URL đã sẵn sàng để nhận webhook từ Slack</p>
+        </div>
+      </body>
+    </html>
+  `;
+  
+  return HtmlService.createHtmlOutput(html)
+    .setTitle('Habit Tracker')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+}
+
+/**
  * Gửi báo cáo thói quen qua Slack với interactive buttons
  */
 function sendSlackReport(data) {
