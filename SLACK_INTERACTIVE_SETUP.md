@@ -22,32 +22,80 @@ Tính năng này cho phép tương tác hai chiều giữa Slack và Google Shee
    - Click "Deploy"
    - **Copy Web App URL** (dạng: `https://script.google.com/macros/s/ABC.../exec`)
 
-### ⚠️ Khắc phục lỗi "Không tìm thấy hàm tập lệnh: doGet"
+## 🔧 Khắc phục các lỗi thường gặp
 
-Nếu gặp lỗi này khi deploy:
-- **Nguyên nhân**: Google Apps Script yêu cầu hàm `doGet()` để xử lý HTTP GET requests
-- **Giải pháp**: Hàm `doGet()` đã được thêm vào code, deploy lại Web App
-- **Kiểm tra**: Truy cập Web App URL để xem trang xác nhận hoạt động
+### 1. Lỗi "Không tìm thấy hàm tập lệnh: doGet"
+
+**Nguyên nhân:** Google Apps Script yêu cầu hàm `doGet()` cho Web App.
+
+**Giải pháp:** Hàm `doGet()` đã được thêm vào code.
+
+**Cách kiểm tra:**
+1. Deploy Web App với quyền "Anyone"
+2. Mở URL trong browser → Thấy trang xác nhận
+3. Copy URL để paste vào Slack App
+
+### 2. Lỗi "Operation timed out. Apps need to respond within 3 seconds"
+
+**Nguyên nhân:** Slack yêu cầu phản hồi trong 3 giây, nhưng xử lý Google Sheets quá chậm.
+
+**Giải pháp đã triển khai:**
+- ✅ Hàm `handleCompleteHabitFromSlackFast()` tối ưu tốc độ
+- ✅ Chỉ đọc 2 rows thay vì toàn bộ sheet
+- ✅ Cập nhật trực tiếp 1 cell
+- ✅ Global CONFIG để tránh lỗi reference
+- ✅ Monitoring thời gian xử lý
+
+**Cách test:**
+```javascript
+function testSlackSpeed() {
+  const startTime = new Date().getTime();
+  const result = handleCompleteHabitFromSlackFast(
+    'complete_habit_Đọc sách_2025-01-07', 
+    'U1234567890'
+  );
+  const processingTime = new Date().getTime() - startTime;
+  Logger.log(`⏱️ Processing time: ${processingTime}ms`); // Mục tiêu: < 2000ms
+}
+```
 
 ### Bước 2: Cấu hình Slack App với Interactivity
 
-1. **Truy cập Slack API:**
-   - Đi tới https://api.slack.com/apps
-   - Chọn app "Habit Tracker Bot" đã tạo trước đó
+1. **Tạo Slack App** (nếu chưa có):
+   - Vào [api.slack.com](https://api.slack.com/apps)
+   - "Create New App" → "From scratch"
+   - Đặt tên app và chọn workspace
 
-2. **Kích hoạt Interactivity:**
-   - Trong app settings, chọn "Interactivity & Shortcuts"
-   - Bật "Interactivity"
-   - **Request URL**: Paste Web App URL từ Bước 1
-   - Click "Save Changes"
+2. **Cấu hình OAuth & Permissions** (QUAN TRỌNG):
+   - Vào "Features" → "OAuth & Permissions"
+   
+   **Bot Token Scopes** (bắt buộc):
+   - ✅ `chat:write` - Gửi tin nhắn
+   - ✅ `chat:write.public` - Gửi tin nhắn vào channel public
+   - ✅ `channels:read` - Đọc thông tin channel
+   - ✅ `users:read` - Đọc thông tin user
+   
+   **Redirect URLs** (quan trọng):
+   - ✅ Thêm: `https://script.google.com`
+   - ✅ Thêm: `https://script.google.com/macros/d/YOUR_SCRIPT_ID/usercallback`
+   
+   **Install App:**
+   - "Install to Workspace" → "Allow"
+   - **Copy Bot User OAuth Token** (bắt đầu bằng `xoxb-`)
 
-3. **Cấu hình OAuth & Permissions:**
-   - Chọn "OAuth & Permissions"
-   - Thêm Bot Token Scopes:
-     - `chat:write`
-     - `commands`
-     - `incoming-webhook`
-   - Click "Reinstall App" nếu cần
+3. **Cấu hình Interactivity & Shortcuts**:
+   - Vào "Features" → "Interactivity & Shortcuts"
+   - Bật "Interactivity": **ON**
+   - **Request URL**: Paste Web App URL từ bước 1
+   - ⚠️ **Lưu ý**: URL phải có dạng `https://script.google.com/macros/s/ABC.../exec`
+   - "Save Changes"
+
+4. **Cấu hình Incoming Webhooks** (cho tin nhắn hàng ngày):
+   - Vào "Features" → "Incoming Webhooks"
+   - Bật "Activate Incoming Webhooks": **ON**
+   - "Add New Webhook to Workspace"
+   - Chọn channel để nhận tin nhắn
+   - **Copy Webhook URL**
 
 ### Bước 3: Test tính năng Interactive
 

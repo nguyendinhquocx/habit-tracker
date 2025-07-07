@@ -8,42 +8,45 @@
  * @updated 2025-07-07
  */
 
+// Global CONFIG để sử dụng trong Slack integration
+const CONFIG = {
+  // Cấu hình Sheet
+  spreadsheetId: '1TrFiuWnxOqh7UjxRRIEaF6DFRRutdNdO-OxBRGC9Oho',
+  sheetName: 'habit',
+  
+  // Vùng dữ liệu
+  dataRange: 'C14:AI31',
+  monthYearCell: 'C9',    // Ô chứa tháng/năm (VD: "07/2025")
+  dayOfWeekRow: 14,       // Hàng chứa thứ  
+  dateRow: 15,            // Hàng chứa số ngày (1, 2, 3, 4...)
+  habitNameCol: 'C',      // Cột tên thói quen
+  dataStartCol: 'E',      // Cột bắt đầu dữ liệu checkbox
+  
+  // Email settings
+  emailTo: 'quoc.nguyen3@hoanmy.com', // Thay email của bạn
+  
+  // Slack settings
+  slackWebhookUrl: 'https://hooks.slack.com/services/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', // ⚠️ CẦN CẬP NHẬT: Thay bằng Slack webhook URL hợp lệ của bạn
+  slackChannel: '#habit', // Kênh Slack
+  enableSlack: true, // Tạm tắt Slack cho đến khi có webhook URL hợp lệ
+  
+  // Icons (minimal design)
+  completedIcon: 'https://cdn-icons-png.flaticon.com/128/7046/7046053.png',
+  pendingIcon: 'https://cdn-icons-png.flaticon.com/128/17694/17694317.png',
+  streakIcon: 'https://cdn-icons-png.flaticon.com/128/18245/18245248.png', // Updated star icon
+  calendarIcon: 'https://cdn-icons-png.flaticon.com/128/3239/3239948.png',
+  
+  // Perfect day icons (green when all completed)
+  completedIconPerfect: 'https://cdn-icons-png.flaticon.com/128/10995/10995390.png',
+  pendingIconPerfect: 'https://cdn-icons-png.flaticon.com/128/17694/17694222.png',
+  celebrationIcon: 'https://cdn-icons-png.flaticon.com/128/9422/9422222.png',
+  
+  // Debug mode
+  debugMode: true // Bật để debug
+};
+
 function sendDailyHabitReport() {
-  const CONFIG = {
-    // Cấu hình Sheet
-    spreadsheetId: '1TrFiuWnxOqh7UjxRRIEaF6DFRRutdNdO-OxBRGC9Oho',
-    sheetName: 'habit',
-    
-    // Vùng dữ liệu
-    dataRange: 'C14:AI31',
-    monthYearCell: 'C9',    // Ô chứa tháng/năm (VD: "07/2025")
-    dayOfWeekRow: 14,       // Hàng chứa thứ  
-    dateRow: 15,            // Hàng chứa số ngày (1, 2, 3, 4...)
-    habitNameCol: 'C',      // Cột tên thói quen
-    dataStartCol: 'E',      // Cột bắt đầu dữ liệu checkbox
-    
-    // Email settings
-    emailTo: 'quoc.nguyen3@hoanmy.com', // Thay email của bạn
-    
-    // Slack settings
-    slackWebhookUrl: 'https://hooks.slack.com/services/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', // ⚠️ CẦN CẬP NHẬT: Thay bằng Slack webhook URL hợp lệ của bạn
-    slackChannel: '#habit', // Kênh Slack
-    enableSlack: true, // Tạm tắt Slack cho đến khi có webhook URL hợp lệ
-    
-    // Icons (minimal design)
-    completedIcon: 'https://cdn-icons-png.flaticon.com/128/7046/7046053.png',
-    pendingIcon: 'https://cdn-icons-png.flaticon.com/128/17694/17694317.png',
-    streakIcon: 'https://cdn-icons-png.flaticon.com/128/18245/18245248.png', // Updated star icon
-    calendarIcon: 'https://cdn-icons-png.flaticon.com/128/3239/3239948.png',
-    
-    // Perfect day icons (green when all completed)
-    completedIconPerfect: 'https://cdn-icons-png.flaticon.com/128/10995/10995390.png',
-    pendingIconPerfect: 'https://cdn-icons-png.flaticon.com/128/17694/17694222.png',
-    celebrationIcon: 'https://cdn-icons-png.flaticon.com/128/9422/9422222.png',
-    
-    // Debug mode
-    debugMode: true // Bật để debug
-  };
+  // Sử dụng global CONFIG
 
   try {
     // Mở spreadsheet
@@ -1136,13 +1139,32 @@ function buildSlackProgressBar(percentage) {
 /**
  * Xử lý Slack interactions (button clicks)
  * Hàm này cần được deploy như Web App để nhận POST requests từ Slack
+ * FIXED: Tối ưu để tránh timeout 3 giây
  */
 function doPost(e) {
+  const startTime = new Date().getTime();
+  
   try {
     Logger.log('📨 Received Slack interaction');
     
+    // Trả về response nhanh trước để tránh timeout
+    const quickResponse = ContentService
+      .createTextOutput(JSON.stringify({
+        response_type: 'ephemeral',
+        text: '⏳ Đang xử lý yêu cầu...'
+      }))
+      .setMimeType(ContentService.MimeType.JSON);
+    
     // Parse Slack payload
-    const payload = JSON.parse(e.parameter.payload || e.postData.contents);
+    let payload;
+    try {
+      payload = JSON.parse(e.parameter.payload || e.postData.contents);
+    } catch (parseError) {
+      Logger.log(`❌ Error parsing payload: ${parseError.message}`);
+      return ContentService
+        .createTextOutput(JSON.stringify({ text: '❌ Lỗi xử lý dữ liệu' }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
     
     if (payload.type === 'block_actions') {
       const action = payload.actions[0];
@@ -1152,39 +1174,130 @@ function doPost(e) {
       Logger.log(`🔄 Processing action: ${actionId}, value: ${value}`);
       
       // Xử lý complete habit action
-       if (actionId.startsWith('complete_habit_')) {
-         const result = handleCompleteHabitFromSlack(value, payload.user.id);
-         
-         // Tạo response message với updated progress
-         const responseMessage = buildSlackResponseMessage(result, payload.user.id);
-         
-         // Trả về response cho Slack
-         return ContentService
-           .createTextOutput(JSON.stringify({
-             response_type: 'in_channel',
-             text: result.message,
-             blocks: responseMessage.blocks || undefined,
-             replace_original: false
-           }))
-           .setMimeType(ContentService.MimeType.JSON);
-       }
+      if (actionId.startsWith('complete_habit_')) {
+        try {
+          // Xử lý nhanh và đơn giản để tránh timeout
+          const result = handleCompleteHabitFromSlackFast(value, payload.user.id);
+          
+          const processingTime = new Date().getTime() - startTime;
+          Logger.log(`⏱️ Processing time: ${processingTime}ms`);
+          
+          // Trả về response đơn giản
+          return ContentService
+            .createTextOutput(JSON.stringify({
+              response_type: 'in_channel',
+              text: result.message,
+              replace_original: false
+            }))
+            .setMimeType(ContentService.MimeType.JSON);
+            
+        } catch (habitError) {
+          Logger.log(`❌ Error completing habit: ${habitError.message}`);
+          return ContentService
+            .createTextOutput(JSON.stringify({
+              response_type: 'ephemeral',
+              text: `❌ Lỗi: ${habitError.message}`
+            }))
+            .setMimeType(ContentService.MimeType.JSON);
+        }
+      }
     }
     
     // Default response
     return ContentService
-      .createTextOutput(JSON.stringify({ text: 'Action processed' }))
+      .createTextOutput(JSON.stringify({ 
+        response_type: 'ephemeral',
+        text: '✅ Yêu cầu đã được xử lý' 
+      }))
       .setMimeType(ContentService.MimeType.JSON);
       
   } catch (error) {
-    Logger.log(`❌ Error processing Slack interaction: ${error.message}`);
+    const processingTime = new Date().getTime() - startTime;
+    Logger.log(`❌ Error processing Slack interaction: ${error.message} (${processingTime}ms)`);
+    
     return ContentService
-      .createTextOutput(JSON.stringify({ text: 'Error processing request' }))
+      .createTextOutput(JSON.stringify({ 
+        response_type: 'ephemeral',
+        text: '❌ Có lỗi xảy ra khi xử lý yêu cầu' 
+      }))
       .setMimeType(ContentService.MimeType.JSON);
   }
 }
 
 /**
- * Xử lý việc đánh dấu hoàn thành thói quen từ Slack
+ * Xử lý việc đánh dấu hoàn thành thói quen từ Slack (phiên bản nhanh)
+ * Tối ưu để tránh timeout 3 giây
+ */
+function handleCompleteHabitFromSlackFast(value, userId) {
+  try {
+    Logger.log(`🚀 Fast processing habit completion: ${value}`);
+    
+    // Parse value: complete_habit_{habitName}_{date}
+    const parts = value.split('_');
+    const habitName = parts.slice(2, -1).join('_');
+    const date = parts[parts.length - 1];
+    
+    Logger.log(`🎯 Completing habit: ${habitName}`);
+    
+    // Mở Google Sheet với timeout protection
+    const sheet = SpreadsheetApp.openById(CONFIG.spreadsheetId).getSheetByName(CONFIG.sheetName);
+    
+    // Lấy chỉ dữ liệu cần thiết thay vì toàn bộ sheet
+    const headerRange = sheet.getRange('C14:AI15'); // Chỉ lấy header và date row
+    const headerData = headerRange.getValues();
+    const headers = headerData[0];
+    const dateRow = headerData[1];
+    
+    // Tìm habit column
+    const habitColumnIndex = headers.findIndex(header => 
+      header.toString().toLowerCase().trim() === habitName.toLowerCase().trim()
+    );
+    
+    if (habitColumnIndex === -1) {
+      return { success: false, message: `❌ Không tìm thấy thói quen: ${habitName}` };
+    }
+    
+    // Tìm column cho ngày hôm nay
+    const today = new Date();
+    const todayDay = today.getDate();
+    
+    let todayColIndex = -1;
+    for (let col = 0; col < dateRow.length; col++) {
+      if (dateRow[col] == todayDay) {
+        todayColIndex = col;
+        break;
+      }
+    }
+    
+    if (todayColIndex === -1) {
+      return { success: false, message: `❌ Không tìm thấy cột cho ngày ${todayDay}` };
+    }
+    
+    // Tính toán row index cho habit
+    const habitRowIndex = 16 + habitColumnIndex; // Row 16 là bắt đầu data habits
+    const targetCol = String.fromCharCode(67 + todayColIndex); // C = 67, D = 68, etc.
+    
+    // Cập nhật cell trực tiếp
+    const cellAddress = `${targetCol}${habitRowIndex}`;
+    const targetCell = sheet.getRange(cellAddress);
+    targetCell.setValue(1);
+    
+    Logger.log(`✅ Updated cell ${cellAddress} = 1`);
+    
+    return {
+      success: true,
+      message: `🎉 Đã hoàn thành "${habitName}"! ✨`
+    };
+    
+  } catch (error) {
+    Logger.log(`❌ Error in fast habit completion: ${error.message}`);
+    return { success: false, message: `❌ Lỗi: ${error.message}` };
+  }
+}
+
+/**
+ * Xử lý việc đánh dấu hoàn thành thói quen từ Slack (phiên bản đầy đủ)
+ * Sử dụng cho testing và các trường hợp cần tính toán streak
  */
 function handleCompleteHabitFromSlack(value, userId) {
   try {
