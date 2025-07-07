@@ -25,6 +25,11 @@ function sendDailyHabitReport() {
     // Email settings
     emailTo: 'quoc.nguyen3@hoanmy.com', // Thay email của bạn
     
+    // Slack settings
+    slackWebhookUrl: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK', // Thay bằng Slack webhook URL của bạn
+    slackChannel: '#habit-tracker', // Kênh Slack
+    enableSlack: true, // Bật/tắt gửi Slack
+    
     // Icons (minimal design)
     completedIcon: 'https://cdn-icons-png.flaticon.com/128/7046/7046053.png',
     pendingIcon: 'https://cdn-icons-png.flaticon.com/128/17694/17694317.png',
@@ -224,7 +229,23 @@ function sendDailyHabitReport() {
       htmlBody: htmlBody
     });
 
+    // Gửi Slack (nếu được bật)
+    if (CONFIG.enableSlack) {
+      sendSlackReport({
+        habits: habits,
+        completedHabits: completedHabits,
+        pendingHabits: pendingHabits,
+        completionRate: completionRate,
+        isPerfectDay: isPerfectDay,
+        detailedDate: detailedDate,
+        config: CONFIG
+      });
+    }
+
     Logger.log(`✅ Email habit report đã được gửi thành công`);
+    if (CONFIG.enableSlack) {
+      Logger.log(`✅ Slack habit report đã được gửi thành công`);
+    }
     Logger.log(`📊 Tổng kết: ${completedHabits.length}/${habits.length} thói quen hoàn thành (${Math.round(completionRate)}%)`);
 
   } catch (error) {
@@ -875,4 +896,191 @@ function debugSheetStructure() {
   } catch (error) {
     Logger.log(`❌ Debug error: ${error.message}`);
   }
+}
+
+/**
+ * Gửi báo cáo thói quen qua Slack
+ */
+function sendSlackReport(data) {
+  try {
+    const { habits, completedHabits, pendingHabits, completionRate, isPerfectDay, detailedDate, config } = data;
+    
+    // Tạo message cho Slack
+    const slackMessage = buildSlackMessage({
+      habits,
+      completedHabits,
+      pendingHabits,
+      completionRate,
+      isPerfectDay,
+      detailedDate
+    });
+    
+    // Gửi qua Slack Webhook
+    const payload = {
+      channel: config.slackChannel,
+      username: 'Habit Tracker Bot',
+      icon_emoji: isPerfectDay ? ':trophy:' : ':chart_with_upwards_trend:',
+      blocks: slackMessage
+    };
+    
+    const options = {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      payload: JSON.stringify(payload)
+    };
+    
+    const response = UrlFetchApp.fetch(config.slackWebhookUrl, options);
+    
+    if (response.getResponseCode() === 200) {
+      Logger.log('✅ Slack message sent successfully');
+    } else {
+      Logger.log(`❌ Slack error: ${response.getResponseCode()} - ${response.getContentText()}`);
+    }
+    
+  } catch (error) {
+    Logger.log(`❌ Lỗi khi gửi Slack: ${error.message}`);
+  }
+}
+
+/**
+ * Xây dựng Slack message với Slack Block Kit
+ */
+function buildSlackMessage(data) {
+  const { habits, completedHabits, pendingHabits, completionRate, isPerfectDay, detailedDate } = data;
+  
+  const blocks = [];
+  
+  // Header
+  blocks.push({
+    type: 'header',
+    text: {
+      type: 'plain_text',
+      text: `${isPerfectDay ? '🎉 ' : ''}Habit Tracker Report`,
+      emoji: true
+    }
+  });
+  
+  // Date và tổng quan
+  blocks.push({
+    type: 'section',
+    fields: [
+      {
+        type: 'mrkdwn',
+        text: `*📅 Ngày:*\n${detailedDate}`
+      },
+      {
+        type: 'mrkdwn',
+        text: `*📊 Tiến độ:*\n${completedHabits.length}/${habits.length} thói quen (${Math.round(completionRate)}%)`
+      }
+    ]
+  });
+  
+  // Progress bar
+  const progressBar = buildSlackProgressBar(completionRate);
+  blocks.push({
+    type: 'section',
+    text: {
+      type: 'mrkdwn',
+      text: `*Tiến độ hoàn thành:*\n${progressBar}`
+    }
+  });
+  
+  // Divider
+  blocks.push({ type: 'divider' });
+  
+  // Completed habits
+  if (completedHabits.length > 0) {
+    const completedText = completedHabits.map(habit => {
+      const streakText = habit.streak > 0 ? ` (🔥 ${habit.streak} ngày)` : '';
+      return `✅ ${habit.name}${streakText}`;
+    }).join('\n');
+    
+    blocks.push({
+      type: 'section',
+      text: {
+        type: 'mrkdwn',
+        text: `*🎯 Đã hoàn thành (${completedHabits.length}):*\n${completedText}`
+      }
+    });
+  }
+  
+  // Pending habits
+  if (pendingHabits.length > 0) {
+    const pendingText = pendingHabits.map(habit => `⏳ ${habit.name}`).join('\n');
+    
+    blocks.push({
+      type: 'section',
+      text: {
+        type: 'mrkdwn',
+        text: `*⏰ Chưa thực hiện (${pendingHabits.length}):*\n${pendingText}`
+      }
+    });
+  }
+  
+  // Divider
+  blocks.push({ type: 'divider' });
+  
+  // Motivation message
+  const motivationText = isPerfectDay 
+    ? '🏆 *Perfect Day Achievement Unlocked!* Tuyệt vời! Bạn đã hoàn thành tất cả thói quen hôm nay!' 
+    : '💪 *Keep building great habits!* Ngày mai là cơ hội mới để cải thiện!';
+  
+  blocks.push({
+    type: 'section',
+    text: {
+      type: 'mrkdwn',
+      text: motivationText
+    }
+  });
+  
+  return blocks;
+}
+
+/**
+ * Tạo progress bar cho Slack
+ */
+function buildSlackProgressBar(percentage) {
+  const totalBars = 10;
+  const filledBars = Math.round((percentage / 100) * totalBars);
+  const emptyBars = totalBars - filledBars;
+  
+  const filled = '█'.repeat(filledBars);
+  const empty = '░'.repeat(emptyBars);
+  
+  return `${filled}${empty} ${Math.round(percentage)}%`;
+}
+
+/**
+ * Test function để kiểm tra Slack integration
+ */
+function testSlackIntegration() {
+  Logger.log('🧪 Testing Slack Integration...');
+  
+  // Mock data for testing
+  const testData = {
+    habits: [
+      { name: 'Đọc sách', completed: true, streak: 5 },
+      { name: 'Tập thể dục', completed: true, streak: 3 },
+      { name: 'Thiền', completed: false, streak: 0 }
+    ],
+    completedHabits: [
+      { name: 'Đọc sách', completed: true, streak: 5 },
+      { name: 'Tập thể dục', completed: true, streak: 3 }
+    ],
+    pendingHabits: [
+      { name: 'Thiền', completed: false, streak: 0 }
+    ],
+    completionRate: 66.7,
+    isPerfectDay: false,
+    detailedDate: 'Thứ hai, ngày 7 tháng 1 năm 2025',
+    config: {
+      slackWebhookUrl: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK',
+      slackChannel: '#habit-tracker'
+    }
+  };
+  
+  sendSlackReport(testData);
+  Logger.log('✅ Slack test completed');
 }
