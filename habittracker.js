@@ -1159,11 +1159,57 @@ function doPost(e) {
           const processingTime = new Date().getTime() - startTime;
           Logger.log(`Ultra fast processing time: ${processingTime}ms`);
           
-          // Trả về response ngay lập tức
+          // Tạo response với blocks để hiển thị đẹp hơn
+          const responseBlocks = [
+            {
+              type: 'section',
+              text: {
+                type: 'mrkdwn',
+                text: result.message
+              }
+            }
+          ];
+          
+          // Thêm progress update nếu có thông tin streak
+          if (result.streak && result.habitName) {
+            const progressText = result.streak === 1 ? 
+              'Bạn vừa bắt đầu hành trình xây dựng thói quen mới!' :
+              `Bạn đã duy trì thói quen "${result.habitName}" được ${result.streak} ngày liên tiếp!`;
+              
+            responseBlocks.push({
+              type: 'context',
+              elements: [
+                {
+                   type: 'mrkdwn',
+                   text: progressText
+                 }
+              ]
+            });
+            
+            // Thêm thông báo khuyến khích hoàn thành các thói quen còn lại
+            const encouragementMessages = [
+              'Tiếp tục phấn đấu! Hãy hoàn thành các thói quen còn lại trong ngày!',
+              'Động lực đang cao! Đừng dừng lại, tiếp tục với các mục tiêu khác!',
+              'Tuyệt vời! Hãy duy trì đà này và chinh phục thêm các thói quen khác!',
+              'Bạn đang làm rất tốt! Hãy hoàn thành tất cả để có một ngày hoàn hảo!'
+            ];
+            
+            const randomEncouragement = encouragementMessages[Math.floor(Math.random() * encouragementMessages.length)];
+            
+            responseBlocks.push({
+              type: 'section',
+              text: {
+                type: 'mrkdwn',
+                text: randomEncouragement
+              }
+            });
+          }
+          
+          // Trả về response với blocks
           return ContentService
             .createTextOutput(JSON.stringify({
               response_type: 'in_channel',
-              text: result.message,
+              blocks: responseBlocks,
               replace_original: false
             }))
             .setMimeType(ContentService.MimeType.JSON);
@@ -1173,7 +1219,24 @@ function doPost(e) {
           return ContentService
             .createTextOutput(JSON.stringify({
               response_type: 'ephemeral',
-              text: `Lỗi: ${habitError.message}`
+              blocks: [
+                {
+                  type: 'section',
+                  text: {
+                    type: 'mrkdwn',
+                    text: `*Có lỗi xảy ra khi hoàn thành thói quen*\n${habitError.message}`
+                  }
+                },
+                {
+                  type: 'context',
+                  elements: [
+                    {
+                      type: 'mrkdwn',
+                      text: 'Vui lòng thử lại sau hoặc kiểm tra lại tên thói quen.'
+                    }
+                  ]
+                }
+              ]
             }))
             .setMimeType(ContentService.MimeType.JSON);
         }
@@ -1191,7 +1254,15 @@ function doPost(e) {
     return ContentService
       .createTextOutput(JSON.stringify({ 
         response_type: 'ephemeral',
-        text: 'Yêu cầu đã được xử lý' 
+        blocks: [
+          {
+            type: 'section',
+            text: {
+              type: 'mrkdwn',
+              text: 'Yêu cầu đã được xử lý thành công'
+            }
+          }
+        ]
       }))
       .setMimeType(ContentService.MimeType.JSON);
       
@@ -1202,7 +1273,24 @@ function doPost(e) {
     return ContentService
       .createTextOutput(JSON.stringify({ 
         response_type: 'ephemeral',
-        text: 'Có lỗi xảy ra khi xử lý yêu cầu' 
+        blocks: [
+          {
+            type: 'section',
+            text: {
+              type: 'mrkdwn',
+              text: '*Có lỗi xảy ra khi xử lý yêu cầu*\nVui lòng thử lại sau.'
+            }
+          },
+          {
+            type: 'context',
+            elements: [
+              {
+                type: 'mrkdwn',
+                text: `Thời gian xử lý: ${processingTime}ms`
+              }
+            ]
+          }
+        ]
       }))
       .setMimeType(ContentService.MimeType.JSON);
   }
@@ -1277,9 +1365,39 @@ function handleCompleteHabitUltraFast(value) {
     
     Logger.log(`Updated ${cellAddress} = TRUE`);
     
+    // Tính streak đơn giản cho feedback
+    const habitRow = sheet.getRange(`C${habitRowIndex}:AI${habitRowIndex}`).getValues()[0];
+    let streak = 0;
+    for (let col = todayColIndex; col >= 0; col--) {
+      const cellValue = habitRow[col];
+      const isCompleted = cellValue === true || cellValue === 'TRUE' || cellValue === '✓' || cellValue === 'x' || cellValue === 'X' || cellValue === 1;
+      if (isCompleted) {
+        streak++;
+      } else {
+        break;
+      }
+    }
+    
+    // Tạo message động lực dựa trên streak
+    let motivationMessage = '';
+    
+    if (streak === 1) {
+      motivationMessage = 'Khởi đầu tuyệt vời!';
+    } else if (streak <= 3) {
+      motivationMessage = 'Đang xây dựng thói quen!';
+    } else if (streak <= 7) {
+      motivationMessage = 'Streak tuyệt vời!';
+    } else if (streak <= 21) {
+      motivationMessage = 'Thói quen đang hình thành!';
+    } else {
+      motivationMessage = 'Thói quen đã ăn sâu!';
+    }
+    
     return {
       success: true,
-      message: `Đã hoàn thành "${habitName}"!`
+      message: `Đã hoàn thành "${habitName}"!\n${motivationMessage} Streak: ${streak} ngày`,
+      streak: streak,
+      habitName: habitName
     };
     
   } catch (error) {
