@@ -26,7 +26,7 @@ const CONFIG = {
   emailTo: 'quoc.nguyen3@hoanmy.com', // Thay email của bạn
   
   // Slack settings
-  slackWebhookUrl: 'https://hooks.slack.com/services/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', // CẦN CẬP NHẬT: Thay bằng Slack webhook URL hợp lệ của bạn
+  slackWebhookUrl: 'https://hooks.slack.com/services/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', // CẦN CẬP NHẬT: Thay bằng Slack webhook URL hợp lệ của bạn
   slackChannel: '#habit', // Kênh Slack
   enableSlack: true, // Tạm tắt Slack cho đến khi có webhook URL hợp lệ
   
@@ -1127,7 +1127,12 @@ function doPost(e) {
   try {
     Logger.log('📨 Received Slack interaction');
     
-    // Parse Slack payload nhanh
+    // Kiểm tra nếu là slash command
+    if (e.parameter.command) {
+      return handleSlashCommand(e);
+    }
+    
+    // Parse Slack payload nhanh cho interactive buttons
     let payload;
     try {
       const payloadString = e.parameter.payload || e.postData.contents;
@@ -1763,6 +1768,222 @@ function testSlackInteraction() {
    Logger.log('Copy URL này và paste vào Slack App Interactivity settings');
    return webAppUrl;
  }
+
+/**
+ * Xử lý Slash Commands từ Slack
+ */
+function handleSlashCommand(e) {
+  try {
+    const command = e.parameter.command;
+    const text = e.parameter.text || '';
+    const userId = e.parameter.user_id;
+    const userName = e.parameter.user_name;
+    
+    Logger.log(`Slash command received: ${command} with text: ${text} from user: ${userName}`);
+    
+    switch (command) {
+      case '/habit-report':
+        return handleHabitReportCommand(text, userId, userName);
+      
+      case '/habit-status':
+        return handleHabitStatusCommand(text, userId, userName);
+        
+      case '/habit-help':
+        return handleHabitHelpCommand();
+        
+      default:
+        return ContentService
+          .createTextOutput(JSON.stringify({
+            response_type: 'ephemeral',
+            text: `Command không được hỗ trợ: ${command}`
+          }))
+          .setMimeType(ContentService.MimeType.JSON);
+    }
+    
+  } catch (error) {
+    Logger.log(`Error handling slash command: ${error.message}`);
+    return ContentService
+      .createTextOutput(JSON.stringify({
+        response_type: 'ephemeral',
+        text: 'Có lỗi xảy ra khi xử lý command'
+      }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+/**
+ * Xử lý command /habit-report - Gửi báo cáo habit
+ */
+function handleHabitReportCommand(text, userId, userName) {
+  try {
+    // Gửi response ngay lập tức
+    const immediateResponse = {
+      response_type: 'in_channel',
+      text: `${userName} đã yêu cầu báo cáo habit. Đang xử lý...`
+    };
+    
+    // Chạy sendDailyHabitReport trong background
+    setTimeout(() => {
+      try {
+        sendDailyHabitReport();
+        
+        // Gửi follow-up message
+        const followUpMessage = {
+          channel: CONFIG.slackChannel,
+          text: `Báo cáo habit đã được gửi thành công bởi ${userName}!`,
+          username: 'Habit Tracker Bot'
+        };
+        
+        UrlFetchApp.fetch(CONFIG.slackWebhookUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          payload: JSON.stringify(followUpMessage)
+        });
+        
+      } catch (error) {
+        Logger.log(`Error in background habit report: ${error.message}`);
+        
+        // Gửi error message
+        const errorMessage = {
+          channel: CONFIG.slackChannel,
+          text: `Lỗi khi gửi báo cáo habit: ${error.message}`,
+          username: 'Habit Tracker Bot'
+        };
+        
+        UrlFetchApp.fetch(CONFIG.slackWebhookUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          payload: JSON.stringify(errorMessage)
+        });
+      }
+    }, 100);
+    
+    return ContentService
+      .createTextOutput(JSON.stringify(immediateResponse))
+      .setMimeType(ContentService.MimeType.JSON);
+      
+  } catch (error) {
+    Logger.log(`Error in handleHabitReportCommand: ${error.message}`);
+    return ContentService
+      .createTextOutput(JSON.stringify({
+        response_type: 'ephemeral',
+        text: `Lỗi khi xử lý báo cáo: ${error.message}`
+      }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+/**
+ * Xử lý command /habit-status - Hiển thị trạng thái habit hiện tại
+ */
+function handleHabitStatusCommand(text, userId, userName) {
+  try {
+    const today = new Date();
+    const todayDay = today.getDate();
+    
+    // Mở spreadsheet
+    const ss = SpreadsheetApp.openById(CONFIG.spreadsheetId);
+    const sheet = ss.getSheetByName(CONFIG.sheetName);
+    
+    if (!sheet) {
+      return ContentService
+        .createTextOutput(JSON.stringify({
+          response_type: 'ephemeral',
+          text: 'Không thể truy cập Google Sheet'
+        }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    // Lấy dữ liệu và phân tích
+    const dataRange = sheet.getRange(CONFIG.dataRange);
+    const values = dataRange.getValues();
+    
+    // Tìm cột ngày hôm nay
+    const dateRow = values[CONFIG.dateRow - 14];
+    let todayColIndex = -1;
+    
+    for (let col = 0; col < dateRow.length; col++) {
+      if (dateRow[col] == todayDay) {
+        todayColIndex = col;
+        break;
+      }
+    }
+    
+    if (todayColIndex === -1) {
+      return ContentService
+        .createTextOutput(JSON.stringify({
+          response_type: 'ephemeral',
+          text: `Không tìm thấy dữ liệu cho ngày ${todayDay}`
+        }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    const habits = analyzeHabits(values, todayColIndex, CONFIG);
+    const completedHabits = habits.filter(h => h.completed);
+    const pendingHabits = habits.filter(h => !h.completed);
+    const completionRate = habits.length > 0 ? (completedHabits.length / habits.length) * 100 : 0;
+    
+    // Tạo response message
+    let statusText = `*Trạng thái habit hôm nay (${todayDay}/${today.getMonth() + 1})*\n\n`;
+    statusText += `📊 Tiến độ: ${completedHabits.length}/${habits.length} (${Math.round(completionRate)}%)\n`;
+    statusText += buildSlackProgressBar(completionRate) + '\n\n';
+    
+    if (completedHabits.length > 0) {
+      statusText += `✅ *Đã hoàn thành (${completedHabits.length}):*\n`;
+      completedHabits.forEach(habit => {
+        const streakText = habit.streak > 0 ? ` (${habit.streak} ngày)` : '';
+        statusText += `• ${habit.name}${streakText}\n`;
+      });
+      statusText += '\n';
+    }
+    
+    if (pendingHabits.length > 0) {
+      statusText += `⏳ *Chưa thực hiện (${pendingHabits.length}):*\n`;
+      pendingHabits.forEach(habit => {
+        statusText += `• ${habit.name}\n`;
+      });
+    }
+    
+    return ContentService
+      .createTextOutput(JSON.stringify({
+        response_type: 'ephemeral',
+        text: statusText
+      }))
+      .setMimeType(ContentService.MimeType.JSON);
+      
+  } catch (error) {
+    Logger.log(`Error in handleHabitStatusCommand: ${error.message}`);
+    return ContentService
+      .createTextOutput(JSON.stringify({
+        response_type: 'ephemeral',
+        text: `Lỗi khi lấy trạng thái: ${error.message}`
+      }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+/**
+ * Xử lý command /habit-help - Hiển thị hướng dẫn
+ */
+function handleHabitHelpCommand() {
+  const helpText = `*🎯 Habit Tracker Commands*\n\n` +
+    `• \`/habit-report\` - Gửi báo cáo habit hôm nay\n` +
+    `• \`/habit-status\` - Xem trạng thái habit hiện tại\n` +
+    `• \`/habit-help\` - Hiển thị hướng dẫn này\n\n` +
+    `*💡 Cách sử dụng:*\n` +
+    `1. Sử dụng \`/habit-report\` để gửi báo cáo với các nút tương tác\n` +
+    `2. Nhấn nút "Hoàn thành" để đánh dấu habit đã làm\n` +
+    `3. Sử dụng \`/habit-status\` để kiểm tra tiến độ nhanh\n\n` +
+    `*🔧 Cài đặt:*\n` +
+    `Web App URL: \`${ScriptApp.getService().getUrl()}\``;
+  
+  return ContentService
+    .createTextOutput(JSON.stringify({
+      response_type: 'ephemeral',
+      text: helpText
+    }))
+    .setMimeType(ContentService.MimeType.JSON);
+}
  
  /**
   * Comprehensive test cho toàn bộ Slack integration workflow
@@ -1806,7 +2027,125 @@ function testSlackInteraction() {
  /**
   * Quick setup function để kiểm tra tất cả requirements
   */
- function checkSlackSetupRequirements() {
+ /**
+ * Test slash commands
+ */
+function testSlashCommands() {
+  Logger.log('🧪 Testing Slash Commands...');
+  
+  // Test /habit-report command
+  const mockReportEvent = {
+    parameter: {
+      command: '/habit-report',
+      text: '',
+      user_id: 'U1234567890',
+      user_name: 'test_user'
+    }
+  };
+  
+  Logger.log('Testing /habit-report command...');
+  const reportResult = handleSlashCommand(mockReportEvent);
+  Logger.log(`Report command result: ${reportResult.getContent()}`);
+  
+  // Test /habit-status command
+  const mockStatusEvent = {
+    parameter: {
+      command: '/habit-status',
+      text: '',
+      user_id: 'U1234567890',
+      user_name: 'test_user'
+    }
+  };
+  
+  Logger.log('Testing /habit-status command...');
+  const statusResult = handleSlashCommand(mockStatusEvent);
+  Logger.log(`Status command result: ${statusResult.getContent()}`);
+  
+  // Test /habit-help command
+  const mockHelpEvent = {
+    parameter: {
+      command: '/habit-help',
+      text: '',
+      user_id: 'U1234567890',
+      user_name: 'test_user'
+    }
+  };
+  
+  Logger.log('Testing /habit-help command...');
+  const helpResult = handleSlashCommand(mockHelpEvent);
+  Logger.log(`Help command result: ${helpResult.getContent()}`);
+}
+
+/**
+ * Hiển thị hướng dẫn setup Slack App với Slash Commands
+ */
+function showSlackSetupGuide() {
+  const webAppUrl = ScriptApp.getService().getUrl();
+  
+  Logger.log('📋 SLACK APP SETUP GUIDE');
+  Logger.log('========================');
+  Logger.log('');
+  Logger.log('🔗 Web App URL (cần thiết cho cả Interactive và Slash Commands):');
+  Logger.log(webAppUrl);
+  Logger.log('');
+  Logger.log('📝 CÁC BƯỚC THIẾT LẬP:');
+  Logger.log('');
+  Logger.log('1. TẠO SLACK APP:');
+  Logger.log('   - Truy cập: https://api.slack.com/apps');
+  Logger.log('   - Tạo "New App" > "From scratch"');
+  Logger.log('   - Chọn workspace của bạn');
+  Logger.log('');
+  Logger.log('2. CẤU HÌNH INCOMING WEBHOOKS:');
+  Logger.log('   - Vào "Incoming Webhooks" > Enable');
+  Logger.log('   - "Add New Webhook to Workspace"');
+  Logger.log('   - Chọn channel (ví dụ: #habit)');
+  Logger.log('   - Copy Webhook URL và cập nhật CONFIG.slackWebhookUrl');
+  Logger.log('');
+  Logger.log('3. CẤU HÌNH INTERACTIVITY:');
+  Logger.log('   - Vào "Interactivity & Shortcuts" > Enable');
+  Logger.log('   - Request URL: ' + webAppUrl);
+  Logger.log('');
+  Logger.log('4. CẤU HÌNH SLASH COMMANDS:');
+  Logger.log('   - Vào "Slash Commands" > "Create New Command"');
+  Logger.log('   - Tạo các commands sau:');
+  Logger.log('');
+  Logger.log('   Command: /habit-report');
+  Logger.log('   Request URL: ' + webAppUrl);
+  Logger.log('   Short Description: Gửi báo cáo habit hôm nay');
+  Logger.log('   Usage Hint: (không cần tham số)');
+  Logger.log('');
+  Logger.log('   Command: /habit-status');
+  Logger.log('   Request URL: ' + webAppUrl);
+  Logger.log('   Short Description: Xem trạng thái habit hiện tại');
+  Logger.log('   Usage Hint: (không cần tham số)');
+  Logger.log('');
+  Logger.log('   Command: /habit-help');
+  Logger.log('   Request URL: ' + webAppUrl);
+  Logger.log('   Short Description: Hiển thị hướng dẫn sử dụng');
+  Logger.log('   Usage Hint: (không cần tham số)');
+  Logger.log('');
+  Logger.log('5. CẤU HÌNH PERMISSIONS:');
+  Logger.log('   - Vào "OAuth & Permissions"');
+  Logger.log('   - Thêm Bot Token Scopes:');
+  Logger.log('     • chat:write');
+  Logger.log('     • commands');
+  Logger.log('     • incoming-webhook');
+  Logger.log('');
+  Logger.log('6. CÀI ĐẶT APP:');
+  Logger.log('   - "Install App to Workspace"');
+  Logger.log('   - Authorize các permissions');
+  Logger.log('');
+  Logger.log('7. KIỂM TRA:');
+  Logger.log('   - Chạy testSlashCommands() để test');
+  Logger.log('   - Thử /habit-help trong Slack');
+  Logger.log('');
+  Logger.log('💡 LƯU Ý:');
+  Logger.log('   - Mỗi khi deploy lại Apps Script, URL có thể thay đổi');
+  Logger.log('   - Cần cập nhật lại Request URL trong Slack App settings');
+  Logger.log('   - Đảm bảo CONFIG.slackWebhookUrl và CONFIG.slackChannel đã đúng');
+}
+
+function checkSlackSetupRequirements() {
    Logger.log('🔍 Checking Slack Setup Requirements...');
    
    const requirements = [];
