@@ -26,7 +26,7 @@ const CONFIG = {
   emailTo: 'quoc.nguyen3@hoanmy.com', // Thay email của bạn
   
   // Slack settings
-  slackWebhookUrl: 'https://hooks.slack.com/services/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', // CẦN CẬP NHẬT: Thay bằng Slack webhook URL hợp lệ của bạn
+  slackWebhookUrl: 'https://hooks.slack.com/services/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', // CẦN CẬP NHẬT: Thay bằng Slack webhook URL hợp lệ của bạn
   slackChannel: '#habit', // Kênh Slack
   enableSlack: true, // Tạm tắt Slack cho đến khi có webhook URL hợp lệ
   
@@ -161,7 +161,6 @@ function sendDailyHabitReport() {
           <!-- Date -->
           <div style="margin-bottom: 32px;">
             <span style="font-size: 14px; font-weight: 500; color: ${colors.dateText};">
-              <img src="${calendarIcon}" width="16" height="16" style="vertical-align: middle; margin-right: 8px;" alt="Calendar">
               ${detailedDate}
             </span>
           </div>
@@ -964,7 +963,7 @@ function sendSlackReport(data) {
     const payload = {
       channel: config.slackChannel,
       username: 'Habit Tracker Bot',
-      icon_emoji: isPerfectDay ? ':trophy:' : ':chart_with_upwards_trend:',
+      // Removed icon_emoji for clean appearance
       blocks: slackMessage
     };
     
@@ -1067,7 +1066,7 @@ function buildSlackMessage(data) {
         type: 'section',
         text: {
           type: 'mrkdwn',
-          text: `⏳ ${habit.name}`
+          text: `${habit.name}`
         },
         accessory: {
           type: 'button',
@@ -1078,7 +1077,7 @@ function buildSlackMessage(data) {
           },
           value: `complete_habit_${habit.name}_${new Date().toISOString().split('T')[0]}`,
           action_id: `complete_habit_${index}`,
-          style: 'primary'
+          // Removed style to use default (no color)
         }
       });
     });
