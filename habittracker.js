@@ -26,20 +26,11 @@ const CONFIG = {
   emailTo: 'quoc.nguyen3@hoanmy.com', // Thay email của bạn
   
   // Slack settings
-  slackWebhookUrl: 'https://hooks.slack.com/services/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', // ⚠️ CẦN CẬP NHẬT: Thay bằng Slack webhook URL hợp lệ của bạn
+  slackWebhookUrl: 'https://hooks.slack.com/services/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', // CẦN CẬP NHẬT: Thay bằng Slack webhook URL hợp lệ của bạn
   slackChannel: '#habit', // Kênh Slack
   enableSlack: true, // Tạm tắt Slack cho đến khi có webhook URL hợp lệ
   
-  // Icons (minimal design)
-  completedIcon: 'https://cdn-icons-png.flaticon.com/128/7046/7046053.png',
-  pendingIcon: 'https://cdn-icons-png.flaticon.com/128/17694/17694317.png',
-  streakIcon: 'https://cdn-icons-png.flaticon.com/128/18245/18245248.png', // Updated star icon
-  calendarIcon: 'https://cdn-icons-png.flaticon.com/128/3239/3239948.png',
-  
-  // Perfect day icons (green when all completed)
-  completedIconPerfect: 'https://cdn-icons-png.flaticon.com/128/10995/10995390.png',
-  pendingIconPerfect: 'https://cdn-icons-png.flaticon.com/128/17694/17694222.png',
-  celebrationIcon: 'https://cdn-icons-png.flaticon.com/128/9422/9422222.png',
+  // Minimal design - no external icons
   
   // Debug mode
   debugMode: true // Bật để debug
@@ -54,7 +45,7 @@ function sendDailyHabitReport() {
     const sheet = ss.getSheetByName(CONFIG.sheetName);
     
     if (!sheet) {
-      Logger.log(`❌ Sheet '${CONFIG.sheetName}' không tồn tại`);
+      Logger.log(`Sheet '${CONFIG.sheetName}' không tồn tại`);
       return;
     }
 
@@ -87,15 +78,15 @@ function sendDailyHabitReport() {
       if (cellValue == todayDay) {
         todayColIndex = col;
         if (CONFIG.debugMode) {
-          Logger.log(`🎯 Tìm thấy ngày ${todayDay} ở cột index: ${col}`);
+          Logger.log(`Tìm thấy ngày ${todayDay} ở cột index: ${col}`);
         }
         break;
       }
     }
     
     if (todayColIndex === -1) {
-      Logger.log(`❌ Không tìm thấy cột cho ngày: ${todayDay}`);
-      Logger.log(`📋 Dữ liệu hàng ngày: ${dateRow}`);
+      Logger.log(`Không tìm thấy cột cho ngày: ${todayDay}`);
+      Logger.log(`Dữ liệu hàng ngày: ${dateRow}`);
       return;
     }
 
@@ -111,7 +102,7 @@ function sendDailyHabitReport() {
     const completionRate = habits.length > 0 ? (completedHabits.length / habits.length) * 100 : 0;
     
     // Subject email
-    const subject = `Habit Report ${todayDay}/${today.getMonth() + 1}/${today.getFullYear()} ${isPerfectDay ? '🎉' : ''}`;
+    const subject = `Habit Report ${todayDay}/${today.getMonth() + 1}/${today.getFullYear()}${isPerfectDay ? ' - Perfect Day' : ''}`;
 
     // Chọn icons và màu sắc
     const colors = isPerfectDay ? {
@@ -131,13 +122,11 @@ function sendDailyHabitReport() {
       footerText: '#8e8e93'
     };
 
-    const calendarIcon = CONFIG.calendarIcon;
-    const completedIcon = isPerfectDay ? CONFIG.completedIconPerfect : CONFIG.completedIcon;
-    const pendingIcon = isPerfectDay ? CONFIG.pendingIconPerfect : CONFIG.pendingIcon;
+    // No external icons - using simple text indicators
 
     // Xây dựng HTML sections
-    const completedSection = buildHabitSection(completedHabits, 'Đã hoàn thành', completedIcon, colors.sectionTitle, CONFIG);
-    const pendingSection = buildHabitSection(pendingHabits, 'Chưa thực hiện', pendingIcon, isPerfectDay ? colors.sectionTitle : colors.pendingTitle, CONFIG);
+    const completedSection = buildHabitSection(completedHabits, 'Đã hoàn thành', colors.sectionTitle);
+     const pendingSection = buildHabitSection(pendingHabits, 'Chưa thực hiện', isPerfectDay ? colors.sectionTitle : colors.pendingTitle);
     
     // Progress bar
     const progressBar = buildProgressBar(completionRate, isPerfectDay);
@@ -162,7 +151,7 @@ function sendDailyHabitReport() {
           <!-- Header -->
           <div style="text-align: center; margin-bottom: 48px;">
             <h1 style="margin: 0; font-size: 28px; font-weight: 300; color: ${colors.headerTitle}; letter-spacing: -0.5px;">
-              Habit Tracker ${isPerfectDay ? '🎉' : ''}
+              Habit Tracker${isPerfectDay ? ' - Perfect Day' : ''}
             </h1>
             <p style="margin: 8px 0 0; font-size: 16px; font-weight: 400; color: ${colors.headerSubtitle};">
               Báo cáo thói quen cá nhân
@@ -208,10 +197,10 @@ function sendDailyHabitReport() {
           <!-- Footer -->
           <div style="text-align: center; padding-top: 32px; border-top: 1px solid #f5f5f5;">
             <p style="margin: 0 0 6px; font-size: 12px; color: ${colors.footerText};">
-              Keep building great habits! 💪
+              Keep building great habits!
             </p>
             <p style="margin: 0; font-size: 12px; font-weight: 500; color: ${colors.footerText};">
-              ${isPerfectDay ? 'Perfect Day Achievement Unlocked! 🏆' : 'Tomorrow is a new opportunity'}
+              ${isPerfectDay ? 'Perfect Day Achievement Unlocked!' : 'Tomorrow is a new opportunity'}
             </p>
           </div>
 
@@ -244,19 +233,19 @@ function sendDailyHabitReport() {
           detailedDate: detailedDate,
           config: CONFIG
         });
-        Logger.log(`✅ Slack habit report đã được gửi thành công`);
+        Logger.log(`Slack habit report đã được gửi thành công`);
       } catch (error) {
-        Logger.log(`❌ Lỗi khi gửi Slack: ${error.message}`);
+        Logger.log(`Lỗi khi gửi Slack: ${error.message}`);
       }
     } else if (CONFIG.enableSlack && !CONFIG.slackWebhookUrl) {
-      Logger.log(`⚠️ Slack được bật nhưng chưa có webhook URL`);
+      Logger.log(`Slack được bật nhưng chưa có webhook URL`);
     }
 
-    Logger.log(`✅ Email habit report đã được gửi thành công`);
-    Logger.log(`📊 Tổng kết: ${completedHabits.length}/${habits.length} thói quen hoàn thành (${Math.round(completionRate)}%)`);
+    Logger.log(`Email habit report đã được gửi thành công`);
+    Logger.log(`Tổng kết: ${completedHabits.length}/${habits.length} thói quen hoàn thành (${Math.round(completionRate)}%)`);
 
   } catch (error) {
-    Logger.log(`❌ Lỗi khi gửi email habit report: ${error.message}`);
+    Logger.log(`Lỗi khi gửi email habit report: ${error.message}`);
     Logger.log(`Stack trace: ${error.stack}`);
   }
 }
@@ -298,7 +287,7 @@ function analyzeHabits(values, todayColIndex, CONFIG) {
       }
     }
   } catch (error) {
-    Logger.log(`❌ Lỗi khi phân tích habits: ${error.message}`);
+    Logger.log(`Lỗi khi phân tích habits: ${error.message}`);
   }
   
   return habits;
@@ -328,7 +317,7 @@ function calculateHabitStreak(habitRow, todayColIndex) {
       }
     }
   } catch (error) {
-    Logger.log(`❌ Lỗi khi tính streak: ${error.message}`);
+    Logger.log(`Lỗi khi tính streak: ${error.message}`);
   }
   
   return streak;
@@ -337,17 +326,16 @@ function calculateHabitStreak(habitRow, todayColIndex) {
 /**
  * Xây dựng section cho danh sách thói quen
  */
-function buildHabitSection(habits, title, icon, titleColor, CONFIG) {
+function buildHabitSection(habits, title, titleColor) {
   if (habits.length === 0) {
     const emptyMessage = title.includes('Đã hoàn thành') ? 
       'Chưa có thói quen nào được hoàn thành hôm nay' : 
-      `Tuyệt vời! Tất cả thói quen đã hoàn thành <img src="${CONFIG.celebrationIcon}" width="20" height="20" style="margin-left: 8px;" alt="Celebration">`;
+      'Tuyệt vời! Tất cả thói quen đã hoàn thành';
     
     return `
       <div style="margin-bottom: 32px; background-color: #ffffff; border: 1px solid #e9ecef; border-radius: 12px; overflow: hidden;">
         <div style="padding: 20px 24px 16px; border-bottom: 1px solid #f5f5f5;">
-          <h2 style="margin: 0; font-size: 18px; font-weight: 500; color: ${titleColor}; display: flex; align-items: center;">
-            <img src="${icon}" width="20" height="20" style="margin-right: 12px;" alt="${title}">
+          <h2 style="margin: 0; font-size: 18px; font-weight: 500; color: ${titleColor};">
             ${title}
           </h2>
         </div>
@@ -364,7 +352,6 @@ function buildHabitSection(habits, title, icon, titleColor, CONFIG) {
   const habitItems = habits.map(habit => {
     const streakDisplay = habit.streak > 0 ? 
       `<span style="background: linear-gradient(135deg, #22c55e, #16a34a); color: white; padding: 4px 8px; border-radius: 12px; font-size: 12px; font-weight: 600;">
-        <img src="${CONFIG.streakIcon}" width="12" height="12" style="margin-right: 4px; filter: brightness(0) invert(1);" alt="Streak">
         ${habit.streak} ngày
       </span>` : '';
 
@@ -382,8 +369,7 @@ function buildHabitSection(habits, title, icon, titleColor, CONFIG) {
     <div style="margin-bottom: 32px; background-color: #ffffff; border: 1px solid #e9ecef; border-radius: 12px; overflow: hidden;">
       <div style="padding: 20px 24px 16px; border-bottom: 1px solid #f5f5f5;">
         <div style="display: flex; align-items: center; justify-content: space-between;">
-          <h2 style="margin: 0; font-size: 18px; font-weight: 500; color: ${titleColor}; display: flex; align-items: center;">
-            <img src="${icon}" width="20" height="20" style="margin-right: 12px;" alt="${title}">
+          <h2 style="margin: 0; font-size: 18px; font-weight: 500; color: ${titleColor};">
             ${title}
           </h2>
           <span style="background: #f3f4f6; color: #374151; padding: 6px 12px; border-radius: 12px; font-weight: 600; font-size: 13px;">
@@ -510,7 +496,7 @@ function buildContributionGrid(sheet, habits, CONFIG, colors, isPerfectDay) {
     return gridHtml;
     
   } catch (error) {
-    Logger.log(`❌ Error building contribution grid: ${error.message}`);
+    Logger.log(`Error building contribution grid: ${error.message}`);
     return '';
   }
 }
@@ -565,25 +551,20 @@ function buildProgressBar(percentage, isPerfectDay) {
  * Section động viên
  */
 function buildMotivationSection(isPerfectDay, completionRate, colors) {
-  let message, emoji;
+  let message;
   
   if (isPerfectDay) {
     message = "Xuất sắc! Bạn đã hoàn thành tất cả thói quen hôm nay. Hãy tiếp tục duy trì!";
-    emoji = "🏆";
   } else if (completionRate >= 80) {
     message = "Rất tốt! Bạn đã hoàn thành hầu hết các thói quen. Hãy cố gắng thêm một chút!";
-    emoji = "💪";
   } else if (completionRate >= 50) {
     message = "Không sao, ngày mai là cơ hội mới. Hãy tập trung vào những thói quen còn lại!";
-    emoji = "🌱";
   } else {
     message = "Đừng nản lòng! Mỗi ngày là một khởi đầu mới. Hãy bắt đầu từ những thói quen nhỏ!";
-    emoji = "⭐";
   }
 
   return `
     <div style="margin-bottom: 32px; background: linear-gradient(135deg, #f8fafc, #f1f5f9); border: 1px solid #e2e8f0; border-radius: 12px; padding: 24px; text-align: center;">
-      <div style="font-size: 32px; margin-bottom: 12px;">${emoji}</div>
       <p style="margin: 0; font-size: 16px; color: ${colors.sectionTitle}; line-height: 1.5; font-weight: 500;">
         ${message}
       </p>
@@ -598,10 +579,10 @@ function sendEmailWithRetry(emailConfig, maxRetries = 3) {
   for (let i = 0; i < maxRetries; i++) {
     try {
       MailApp.sendEmail(emailConfig);
-      Logger.log(`✅ Email sent successfully on attempt ${i + 1}`);
+      Logger.log(`Email sent successfully on attempt ${i + 1}`);
       return true;
     } catch (error) {
-      Logger.log(`❌ Email attempt ${i + 1} failed: ${error.message}`);
+      Logger.log(`Email attempt ${i + 1} failed: ${error.message}`);
       if (i === maxRetries - 1) throw error;
       Utilities.sleep(1000 * (i + 1)); // Exponential backoff
     }
@@ -629,10 +610,10 @@ function createDailyTrigger() {
       .atHour(8)
       .create();
     
-    Logger.log('✅ Đã tạo trigger gửi báo cáo hàng ngày lúc 8:00 sáng');
+    Logger.log('Đã tạo trigger gửi báo cáo hàng ngày lúc 8:00 sáng');
     
   } catch (error) {
-    Logger.log(`❌ Lỗi tạo trigger: ${error.message}`);
+    Logger.log(`Lỗi tạo trigger: ${error.message}`);
   }
 }
 
@@ -672,13 +653,13 @@ function createMultipleDailyTriggers() {
       .atHour(21)
       .create();
     
-    Logger.log('✅ Đã tạo 3 trigger gửi báo cáo:');
+    Logger.log('Đã tạo 3 trigger gửi báo cáo:');
     Logger.log('   - Sáng 7:00');
     Logger.log('   - Trưa 11:30');
     Logger.log('   - Tối 19:00');
     
   } catch (error) {
-    Logger.log(`❌ Lỗi tạo trigger: ${error.message}`);
+    Logger.log(`Lỗi tạo trigger: ${error.message}`);
   }
 }
 
@@ -697,10 +678,10 @@ function deleteAllTriggers() {
       }
     });
     
-    Logger.log(`✅ Đã xóa ${deletedCount} trigger`);
+    Logger.log(`Đã xóa ${deletedCount} trigger`);
     
   } catch (error) {
-    Logger.log(`❌ Lỗi xóa trigger: ${error.message}`);
+    Logger.log(`Lỗi xóa trigger: ${error.message}`);
   }
 }
 
@@ -714,7 +695,7 @@ function listCurrentTriggers() {
       trigger.getHandlerFunction() === 'sendDailyHabitReport'
     );
     
-    Logger.log(`📋 Có ${habitTriggers.length} trigger đang hoạt động:`);
+    Logger.log(`Có ${habitTriggers.length} trigger đang hoạt động:`);
     
     habitTriggers.forEach((trigger, index) => {
       const eventType = trigger.getEventType();
@@ -725,7 +706,7 @@ function listCurrentTriggers() {
     });
     
   } catch (error) {
-    Logger.log(`❌ Lỗi kiểm tra trigger: ${error.message}`);
+    Logger.log(`Lỗi kiểm tra trigger: ${error.message}`);
   }
 }
 
@@ -734,7 +715,7 @@ function listCurrentTriggers() {
  */
 function testContributionGrid() {
    try {
-     Logger.log('🧪 Testing Contribution Grid Feature...');
+     Logger.log('Testing Contribution Grid Feature...');
      
      // Define CONFIG locally (same as in sendDailyHabitReport)
      const CONFIG = {
@@ -756,7 +737,7 @@ function testContributionGrid() {
        throw new Error(`Sheet "${CONFIG.sheetName}" not found`);
      }
      
-     Logger.log('✅ Sheet opened successfully');
+     Logger.log('Sheet opened successfully');
      
      // Get today's column index
      const today = new Date();
@@ -775,13 +756,13 @@ function testContributionGrid() {
      }
      
      if (todayColIndex === -1) {
-       Logger.log(`⚠️ Today's column not found for day ${todayDay}, using first column for test`);
+       Logger.log(`Today's column not found for day ${todayDay}, using first column for test`);
        todayColIndex = 0;
      }
      
      // Get habits using existing analyzeHabits function
      const habits = analyzeHabits(values, todayColIndex, CONFIG);
-     Logger.log(`📊 Found ${habits.length} habits`);
+     Logger.log(`Found ${habits.length} habits`);
      
      // Test contribution grid
      const colors = {
@@ -797,16 +778,16 @@ function testContributionGrid() {
        false // isPerfectDay
      );
      
-     Logger.log('✅ Contribution grid generated successfully');
+     Logger.log('Contribution grid generated successfully');
      Logger.log(`📏 Grid HTML length: ${contributionGrid.length} characters`);
      
      // Test complete - call main function
-     Logger.log('🚀 Running full daily report...');
+     Logger.log('Running full daily report...');
      sendDailyHabitReport();
      
    } catch (error) {
-     Logger.log(`❌ Test failed: ${error.message}`);
-     Logger.log(`📍 Stack trace: ${error.stack}`);
+     Logger.log(`Test failed: ${error.message}`);
+     Logger.log(`Stack trace: ${error.stack}`);
    }
  }
 
@@ -814,7 +795,7 @@ function testContributionGrid() {
  * ENHANCED: Test function với debug chi tiết
  */
 function testHabitTracker() {
-  Logger.log('🧪 TESTING HABIT TRACKER - Enhanced Debug Mode');
+  Logger.log('TESTING HABIT TRACKER - Enhanced Debug Mode');
   
   // Test đọc cấu trúc sheet
   const CONFIG = {
@@ -831,30 +812,30 @@ function testHabitTracker() {
     
     // Test đọc tháng/năm
     const monthYear = sheet.getRange(CONFIG.monthYearCell).getValue();
-    Logger.log(`📅 Tháng/năm từ C9: ${monthYear}`);
+    Logger.log(`Tháng/năm từ C9: ${monthYear}`);
     
     // Test đọc hàng ngày
     const dataRange = sheet.getRange(CONFIG.dataRange);
     const values = dataRange.getValues();
     const dateRow = values[1]; // Row 15 = index 1
-    Logger.log(`📋 Hàng ngày (row 15): ${dateRow.slice(0, 10)}`); // Hiển thị 10 cột đầu
+    Logger.log(`Hàng ngày (row 15): ${dateRow.slice(0, 10)}`); // Hiển thị 10 cột đầu
     
     // Ngày hôm nay
     const today = new Date();
     const todayDay = today.getDate();
-    Logger.log(`🎯 Đang tìm ngày: ${todayDay}`);
+    Logger.log(`Đang tìm ngày: ${todayDay}`);
     
     // Test tìm cột
     for (let col = 0; col < Math.min(dateRow.length, 15); col++) {
       const cellValue = dateRow[col];
-      Logger.log(`📍 Cột ${col}: ${cellValue} (Type: ${typeof cellValue})`);
+      Logger.log(`Cột ${col}: ${cellValue} (Type: ${typeof cellValue})`);
       if (cellValue == todayDay) {
-        Logger.log(`✅ FOUND! Ngày ${todayDay} ở cột ${col}`);
+        Logger.log(`FOUND! Ngày ${todayDay} ở cột ${col}`);
       }
     }
     
   } catch (error) {
-    Logger.log(`❌ Debug error: ${error.message}`);
+    Logger.log(`Debug error: ${error.message}`);
   }
   
   // Chạy hàm chính
@@ -875,33 +856,33 @@ function debugSheetStructure() {
     const sheet = ss.getSheetByName(CONFIG.sheetName);
     
     Logger.log('🔍 =================');
-    Logger.log('📊 SHEET STRUCTURE DEBUG');
+    Logger.log('SHEET STRUCTURE DEBUG');
     Logger.log('🔍 =================');
     
     // C9 - Tháng/năm
     const monthYear = sheet.getRange('C9').getValue();
-    Logger.log(`📅 C9 (Tháng/năm): "${monthYear}" | Type: ${typeof monthYear}`);
+    Logger.log(`C9 (Tháng/năm): "${monthYear}" | Type: ${typeof monthYear}`);
     
     // Hàng 14 - Thứ
     const dayOfWeekRow = sheet.getRange('C14:AI14').getValues()[0];
-    Logger.log(`📋 Row 14 (Thứ): [${dayOfWeekRow.slice(0, 10).join(', ')}...]`);
+    Logger.log(`Row 14 (Thứ): [${dayOfWeekRow.slice(0, 10).join(', ')}...]`);
     
     // Hàng 15 - Ngày
     const dateRow = sheet.getRange('C15:AI15').getValues()[0];
-    Logger.log(`📋 Row 15 (Ngày): [${dateRow.slice(0, 10).join(', ')}...]`);
+    Logger.log(`Row 15 (Ngày): [${dateRow.slice(0, 10).join(', ')}...]`);
     
     // Hàng 16 - Thói quen đầu tiên
     const firstHabitRow = sheet.getRange('C16:AI16').getValues()[0];
     const habitName = firstHabitRow[0];
-    Logger.log(`🎯 Thói quen đầu tiên: "${habitName}"`);
-    Logger.log(`📊 Data row 16: [${firstHabitRow.slice(0, 10).join(', ')}...]`);
+    Logger.log(`Thói quen đầu tiên: "${habitName}"`);
+    Logger.log(`Data row 16: [${firstHabitRow.slice(0, 10).join(', ')}...]`);
     
     // Ngày hôm nay
     const today = new Date();
-    Logger.log(`🗓️ Hôm nay: ${today.getDate()}/${today.getMonth() + 1}/${today.getFullYear()}`);
+    Logger.log(`Hôm nay: ${today.getDate()}/${today.getMonth() + 1}/${today.getFullYear()}`);
     
   } catch (error) {
-    Logger.log(`❌ Debug error: ${error.message}`);
+    Logger.log(`Debug error: ${error.message}`);
   }
 }
 
@@ -946,11 +927,11 @@ function doGet(e) {
       </head>
       <body>
         <div class="header">
-          <h1>🎯 Habit Tracker</h1>
+          <h1>Habit Tracker</h1>
           <p>Google Apps Script Web App đã được triển khai thành công</p>
         </div>
         <div class="status">
-          <p class="success">✅ Web App đang hoạt động bình thường</p>
+          <p class="success">Web App đang hoạt động bình thường</p>
           <p>Slack Interactive URL đã sẵn sàng để nhận webhook từ Slack</p>
         </div>
       </body>
@@ -998,13 +979,13 @@ function sendSlackReport(data) {
     const response = UrlFetchApp.fetch(config.slackWebhookUrl, options);
     
     if (response.getResponseCode() === 200) {
-      Logger.log('✅ Slack message sent successfully');
+      Logger.log('Slack message sent successfully');
     } else {
-      Logger.log(`❌ Slack error: ${response.getResponseCode()} - ${response.getContentText()}`);
+      Logger.log(`Slack error: ${response.getResponseCode()} - ${response.getContentText()}`);
     }
     
   } catch (error) {
-    Logger.log(`❌ Lỗi khi gửi Slack: ${error.message}`);
+    Logger.log(`Lỗi khi gửi Slack: ${error.message}`);
   }
 }
 
@@ -1021,8 +1002,8 @@ function buildSlackMessage(data) {
     type: 'header',
     text: {
       type: 'plain_text',
-      text: `${isPerfectDay ? '🎉 ' : ''}Habit Tracker Report`,
-      emoji: true
+      text: `Habit Tracker Report${isPerfectDay ? ' - Perfect Day' : ''}`,
+      emoji: false
     }
   });
   
@@ -1032,11 +1013,11 @@ function buildSlackMessage(data) {
     fields: [
       {
         type: 'mrkdwn',
-        text: `*📅 Ngày:*\n${detailedDate}`
+        text: `*Ngày:*\n${detailedDate}`
       },
       {
         type: 'mrkdwn',
-        text: `*📊 Tiến độ:*\n${completedHabits.length}/${habits.length} thói quen (${Math.round(completionRate)}%)`
+        text: `*Tiến độ:*\n${completedHabits.length}/${habits.length} thói quen (${Math.round(completionRate)}%)`
       }
     ]
   });
@@ -1057,15 +1038,15 @@ function buildSlackMessage(data) {
   // Completed habits
   if (completedHabits.length > 0) {
     const completedText = completedHabits.map(habit => {
-      const streakText = habit.streak > 0 ? ` (🔥 ${habit.streak} ngày)` : '';
-      return `✅ ${habit.name}${streakText}`;
+      const streakText = habit.streak > 0 ? ` (${habit.streak} ngày)` : '';
+      return `${habit.name}${streakText}`;
     }).join('\n');
     
     blocks.push({
       type: 'section',
       text: {
         type: 'mrkdwn',
-        text: `*🎯 Đã hoàn thành (${completedHabits.length}):*\n${completedText}`
+        text: `*Đã hoàn thành (${completedHabits.length}):*\n${completedText}`
       }
     });
   }
@@ -1076,7 +1057,7 @@ function buildSlackMessage(data) {
       type: 'section',
       text: {
         type: 'mrkdwn',
-        text: `*⏰ Chưa thực hiện (${pendingHabits.length}):*`
+        text: `*Chưa thực hiện (${pendingHabits.length}):*`
       }
     });
     
@@ -1092,8 +1073,8 @@ function buildSlackMessage(data) {
           type: 'button',
           text: {
             type: 'plain_text',
-            text: '✅ Hoàn thành',
-            emoji: true
+            text: 'Hoàn thành',
+            emoji: false
           },
           value: `complete_habit_${habit.name}_${new Date().toISOString().split('T')[0]}`,
           action_id: `complete_habit_${index}`,
@@ -1108,8 +1089,8 @@ function buildSlackMessage(data) {
   
   // Motivation message
   const motivationText = isPerfectDay 
-    ? '🏆 *Perfect Day Achievement Unlocked!* Tuyệt vời! Bạn đã hoàn thành tất cả thói quen hôm nay!' 
-    : '💪 *Keep building great habits!* Ngày mai là cơ hội mới để cải thiện!';
+      ? '*Perfect Day Achievement Unlocked!* Tuyệt vời! Bạn đã hoàn thành tất cả thói quen hôm nay!'
+      : '*Keep building great habits!* Ngày mai là cơ hội mới để cải thiện!';
   
   blocks.push({
     type: 'section',
@@ -1153,11 +1134,11 @@ function doPost(e) {
       const payloadString = e.parameter.payload || e.postData.contents;
       payload = JSON.parse(payloadString);
     } catch (parseError) {
-      Logger.log(`❌ Error parsing payload: ${parseError.message}`);
+      Logger.log(`Error parsing payload: ${parseError.message}`);
       return ContentService
         .createTextOutput(JSON.stringify({ 
           response_type: 'ephemeral',
-          text: '❌ Lỗi xử lý dữ liệu' 
+          text: 'Lỗi xử lý dữ liệu' 
         }))
         .setMimeType(ContentService.MimeType.JSON);
     }
@@ -1177,7 +1158,7 @@ function doPost(e) {
           const result = handleCompleteHabitUltraFast(value);
           
           const processingTime = new Date().getTime() - startTime;
-          Logger.log(`⚡ Ultra fast processing time: ${processingTime}ms`);
+          Logger.log(`Ultra fast processing time: ${processingTime}ms`);
           
           // Trả về response ngay lập tức
           return ContentService
@@ -1189,11 +1170,11 @@ function doPost(e) {
             .setMimeType(ContentService.MimeType.JSON);
             
         } catch (habitError) {
-          Logger.log(`❌ Error completing habit: ${habitError.message}`);
+          Logger.log(`Error completing habit: ${habitError.message}`);
           return ContentService
             .createTextOutput(JSON.stringify({
               response_type: 'ephemeral',
-              text: `❌ Lỗi: ${habitError.message}`
+              text: `Lỗi: ${habitError.message}`
             }))
             .setMimeType(ContentService.MimeType.JSON);
         }
@@ -1211,18 +1192,18 @@ function doPost(e) {
     return ContentService
       .createTextOutput(JSON.stringify({ 
         response_type: 'ephemeral',
-        text: '✅ Yêu cầu đã được xử lý' 
+        text: 'Yêu cầu đã được xử lý' 
       }))
       .setMimeType(ContentService.MimeType.JSON);
       
   } catch (error) {
     const processingTime = new Date().getTime() - startTime;
-    Logger.log(`❌ Error processing Slack interaction: ${error.message} (${processingTime}ms)`);
+    Logger.log(`Error processing Slack interaction: ${error.message} (${processingTime}ms)`);
     
     return ContentService
       .createTextOutput(JSON.stringify({ 
         response_type: 'ephemeral',
-        text: '❌ Có lỗi xảy ra khi xử lý yêu cầu' 
+        text: 'Có lỗi xảy ra khi xử lý yêu cầu' 
       }))
       .setMimeType(ContentService.MimeType.JSON);
   }
@@ -1234,16 +1215,16 @@ function doPost(e) {
  */
 function handleCompleteHabitUltraFast(value) {
   try {
-    Logger.log(`⚡ Ultra fast processing: ${value}`);
+    Logger.log(`Ultra fast processing: ${value}`);
     
     // Parse value: complete_habit_{habitName}_{date}
     const parts = value.split('_');
     if (parts.length < 4) {
-      return { success: false, message: '❌ Format value không hợp lệ' };
+      return { success: false, message: 'Format value không hợp lệ' };
     }
     
     const habitName = parts.slice(2, -1).join('_');
-    Logger.log(`🎯 Habit: ${habitName}`);
+    Logger.log(`Habit: ${habitName}`);
     
     // Mở sheet trực tiếp
     const sheet = SpreadsheetApp.openById(CONFIG.spreadsheetId).getSheetByName(CONFIG.sheetName);
@@ -1261,14 +1242,14 @@ function handleCompleteHabitUltraFast(value) {
     for (let i = 0; i < dateRowValues.length; i++) {
       if (dateRowValues[i] == todayDay) {
         todayColIndex = i + 4; // +4 vì cột E là index 4 (A=0, B=1, C=2, D=3, E=4)
-        Logger.log(`🎯 Found today ${todayDay} at column index: ${todayColIndex} (column ${String.fromCharCode(65 + todayColIndex)})`);
+        Logger.log(`Found today ${todayDay} at column index: ${todayColIndex} (column ${String.fromCharCode(65 + todayColIndex)})`);
         break;
       }
     }
     
     if (todayColIndex === -1) {
-      Logger.log(`❌ Available dates in row 15: ${dateRowValues}`);
-      return { success: false, message: `❌ Không tìm thấy cột cho ngày ${todayDay}` };
+      Logger.log(`Available dates in row 15: ${dateRowValues}`);
+      return { success: false, message: `Không tìm thấy cột cho ngày ${todayDay}` };
     }
     
     // Lấy danh sách tên habits từ cột C (từ row 16 trở đi)
@@ -1285,7 +1266,7 @@ function handleCompleteHabitUltraFast(value) {
     }
     
     if (habitRowIndex === -1) {
-      return { success: false, message: `❌ Không tìm thấy thói quen: ${habitName}` };
+      return { success: false, message: `Không tìm thấy thói quen: ${habitName}` };
     }
     
     // Tính toán cell address và cập nhật
@@ -1295,16 +1276,16 @@ function handleCompleteHabitUltraFast(value) {
     // Cập nhật cell trực tiếp với giá trị TRUE
     sheet.getRange(cellAddress).setValue(true);
     
-    Logger.log(`✅ Updated ${cellAddress} = TRUE`);
+    Logger.log(`Updated ${cellAddress} = TRUE`);
     
     return {
       success: true,
-      message: `🎉 Đã hoàn thành "${habitName}"! ✨`
+      message: `Đã hoàn thành "${habitName}"!`
     };
     
   } catch (error) {
-    Logger.log(`❌ Ultra fast error: ${error.message}`);
-    return { success: false, message: `❌ Lỗi: ${error.message}` };
+    Logger.log(`Ultra fast error: ${error.message}`);
+    return { success: false, message: `Lỗi: ${error.message}` };
   }
 }
 
@@ -1314,14 +1295,14 @@ function handleCompleteHabitUltraFast(value) {
  */
 function handleCompleteHabitFromSlackFast(value, userId) {
   try {
-    Logger.log(`🚀 Fast processing habit completion: ${value}`);
+    Logger.log(`Fast processing habit completion: ${value}`);
     
     // Parse value: complete_habit_{habitName}_{date}
     const parts = value.split('_');
     const habitName = parts.slice(2, -1).join('_');
     const date = parts[parts.length - 1];
     
-    Logger.log(`🎯 Completing habit: ${habitName}`);
+    Logger.log(`Completing habit: ${habitName}`);
     
     // Mở Google Sheet với timeout protection
     const sheet = SpreadsheetApp.openById(CONFIG.spreadsheetId).getSheetByName(CONFIG.sheetName);
@@ -1342,14 +1323,14 @@ function handleCompleteHabitFromSlackFast(value, userId) {
     for (let col = 0; col < dateRow.length; col++) {
       if (dateRow[col] == todayDay) {
         todayColIndex = col;
-        Logger.log(`🎯 Found today ${todayDay} at data column index: ${todayColIndex}`);
+        Logger.log(`Found today ${todayDay} at data column index: ${todayColIndex}`);
         break;
       }
     }
     
     if (todayColIndex === -1) {
-      Logger.log(`❌ Available dates in date row: ${dateRow}`);
-      return { success: false, message: `❌ Không tìm thấy cột cho ngày ${todayDay}` };
+      Logger.log(`Available dates in date row: ${dateRow}`);
+      return { success: false, message: `Không tìm thấy cột cho ngày ${todayDay}` };
     }
     
     // Tìm habit row (bắt đầu từ row 16 = index 2 trong array)
@@ -1358,13 +1339,13 @@ function handleCompleteHabitFromSlackFast(value, userId) {
       const habitNameInSheet = values[row][0]; // Cột C = index 0 trong range C14:AI31
       if (habitNameInSheet && habitNameInSheet.toString().toLowerCase().trim() === habitName.toLowerCase().trim()) {
         habitRowIndex = row + 14; // +14 vì array bắt đầu từ row 14
-        Logger.log(`🎯 Found habit "${habitName}" at row: ${habitRowIndex}`);
+        Logger.log(`Found habit "${habitName}" at row: ${habitRowIndex}`);
         break;
       }
     }
     
     if (habitRowIndex === -1) {
-      return { success: false, message: `❌ Không tìm thấy thói quen: ${habitName}` };
+      return { success: false, message: `Không tìm thấy thói quen: ${habitName}` };
     }
     
     // Tính toán cell address: cột bắt đầu từ E (index 4) + todayColIndex
@@ -1376,16 +1357,16 @@ function handleCompleteHabitFromSlackFast(value, userId) {
      const targetCell = sheet.getRange(cellAddress);
      targetCell.setValue(true);
      
-     Logger.log(`✅ Updated cell ${cellAddress} = TRUE for habit "${habitName}" on day ${todayDay}`);
+     Logger.log(`Updated cell ${cellAddress} = TRUE for habit "${habitName}" on day ${todayDay}`);
     
     return {
       success: true,
-      message: `🎉 Đã hoàn thành "${habitName}"! ✨`
+      message: `Đã hoàn thành "${habitName}"!`
     };
     
   } catch (error) {
-    Logger.log(`❌ Error in fast habit completion: ${error.message}`);
-    return { success: false, message: `❌ Lỗi: ${error.message}` };
+    Logger.log(`Error in fast habit completion: ${error.message}`);
+    return { success: false, message: `Lỗi: ${error.message}` };
   }
 }
 
@@ -1400,7 +1381,7 @@ function handleCompleteHabitFromSlack(value, userId) {
     const habitName = parts.slice(2, -1).join('_'); // Lấy tên habit (có thể có underscore)
     const date = parts[parts.length - 1];
     
-    Logger.log(`🎯 Completing habit: ${habitName} for date: ${date}`);
+    Logger.log(`Completing habit: ${habitName} for date: ${date}`);
     
     // Mở Google Sheet
     const sheet = SpreadsheetApp.openById(CONFIG.spreadsheetId).getSheetByName(CONFIG.sheetName);
@@ -1411,7 +1392,7 @@ function handleCompleteHabitFromSlack(value, userId) {
     const habitColumnIndex = headers.findIndex(header => header.toString().toLowerCase() === habitName.toLowerCase());
     
     if (habitColumnIndex === -1) {
-      return { success: false, message: `❌ Không tìm thấy thói quen: ${habitName}` };
+      return { success: false, message: `Không tìm thấy thói quen: ${habitName}` };
     }
     
     // Tìm row cho ngày hiện tại
@@ -1442,16 +1423,16 @@ function handleCompleteHabitFromSlack(value, userId) {
     // Tính toán streak mới
     const streak = calculateHabitStreak(data, habitColumnIndex, targetRowIndex);
     
-    Logger.log(`✅ Habit completed: ${habitName}, streak: ${streak}`);
+    Logger.log(`Habit completed: ${habitName}, streak: ${streak}`);
     
     return {
       success: true,
-      message: `🎉 Đã hoàn thành "${habitName}"! ${streak > 1 ? `🔥 Streak: ${streak} ngày` : ''}`
+      message: `Đã hoàn thành "${habitName}"!${streak > 1 ? ` Streak: ${streak} ngày` : ''}`
     };
     
   } catch (error) {
-    Logger.log(`❌ Error completing habit from Slack: ${error.message}`);
-    return { success: false, message: `❌ Lỗi: ${error.message}` };
+    Logger.log(`Error completing habit from Slack: ${error.message}`);
+    return { success: false, message: `Lỗi: ${error.message}` };
   }
 }
 
@@ -1475,7 +1456,7 @@ function handleCompleteHabitFromSlack(value, userId) {
        type: 'section',
        text: {
          type: 'mrkdwn',
-         text: `🎉 *Habit Updated!*\n${result.message}`
+         text: `*Habit Updated!*\n${result.message}`
        }
      });
      
@@ -1485,7 +1466,7 @@ function handleCompleteHabitFromSlack(value, userId) {
        type: 'section',
        text: {
          type: 'mrkdwn',
-         text: `*📊 Tiến độ mới:* ${data.completedHabits.length}/${data.habits.length} thói quen\n${progressBar}`
+         text: `*Tiến độ mới:* ${data.completedHabits.length}/${data.habits.length} thói quen\n${progressBar}`
        }
      });
      
@@ -1495,7 +1476,7 @@ function handleCompleteHabitFromSlack(value, userId) {
          type: 'section',
          text: {
            type: 'mrkdwn',
-           text: '🏆 *PERFECT DAY ACHIEVED!* 🏆\nBạn đã hoàn thành tất cả thói quen hôm nay!'
+           text: '*PERFECT DAY ACHIEVED!*\nBạn đã hoàn thành tất cả thói quen hôm nay!'
          }
        });
      }
@@ -1503,7 +1484,7 @@ function handleCompleteHabitFromSlack(value, userId) {
      return { blocks };
      
    } catch (error) {
-     Logger.log(`❌ Error building response message: ${error.message}`);
+     Logger.log(`Error building response message: ${error.message}`);
      return { blocks: [] };
    }
  }
@@ -1512,7 +1493,7 @@ function handleCompleteHabitFromSlack(value, userId) {
   * Test function để kiểm tra Slack integration
   */
 function testSlackIntegration() {
-  Logger.log('🧪 Testing Slack Integration...');
+  Logger.log('Testing Slack Integration...');
   
   // Mock data for testing
   const testData = {
@@ -1538,14 +1519,14 @@ function testSlackIntegration() {
   };
   
   sendSlackReport(testData);
-  Logger.log('✅ Slack test completed');
+  Logger.log('Slack test completed');
 }
 
 /**
  * Test function để kiểm tra Slack interaction handling
  */
 function testSlackInteraction() {
-  Logger.log('🧪 Testing Slack Interaction...');
+  Logger.log('Testing Slack Interaction...');
   
   // Mock Slack interaction payload
   const mockPayload = {
@@ -1560,14 +1541,14 @@ function testSlackInteraction() {
   };
   
   const result = handleCompleteHabitFromSlack(mockPayload.actions[0].value, mockPayload.user.id);
-   Logger.log(`✅ Test result: ${JSON.stringify(result)}`);
+   Logger.log(`Test result: ${JSON.stringify(result)}`);
  }
  
  /**
   * Test function để kiểm tra hiệu suất Ultra Fast function
   */
  function testUltraFastPerformance() {
-   Logger.log('⚡ Testing Ultra Fast Performance...');
+   Logger.log('Testing Ultra Fast Performance...');
    
    const testValues = [
      'complete_habit_Đọc sách_2025-01-07',
@@ -1582,40 +1563,40 @@ function testSlackInteraction() {
        const result = handleCompleteHabitUltraFast(value);
        const processingTime = new Date().getTime() - startTime;
        
-       Logger.log(`⚡ ${value}: ${result.success ? '✅' : '❌'} (${processingTime}ms)`);
+       Logger.log(`${value}: ${result.success ? 'SUCCESS' : 'FAILED'} (${processingTime}ms)`);
        Logger.log(`   Message: ${result.message}`);
        
        if (processingTime > 2000) {
-         Logger.log(`⚠️ WARNING: Processing time ${processingTime}ms > 2000ms`);
+         Logger.log(`WARNING: Processing time ${processingTime}ms > 2000ms`);
        }
        
      } catch (error) {
        const processingTime = new Date().getTime() - startTime;
-       Logger.log(`❌ ${value}: Error after ${processingTime}ms - ${error.message}`);
+       Logger.log(`${value}: Error after ${processingTime}ms - ${error.message}`);
      }
    });
    
-   Logger.log('✅ Ultra Fast Performance test completed');
+   Logger.log('Ultra Fast Performance test completed');
  }
  
  /**
   * Test logic tính toán cột ngày để đảm bảo tick đúng ngày
   */
  function testDateColumnLogic() {
-   Logger.log('🧪 Testing Date Column Logic...');
+   Logger.log('Testing Date Column Logic...');
    
    try {
      const sheet = SpreadsheetApp.openById(CONFIG.spreadsheetId).getSheetByName(CONFIG.sheetName);
      const today = new Date();
      const todayDay = today.getDate();
      
-     Logger.log(`📅 Today is: ${today.toDateString()} (day ${todayDay})`);
+     Logger.log(`Today is: ${today.toDateString()} (day ${todayDay})`);
      
      // Test với range E15:AI15 (như trong handleCompleteHabitUltraFast)
      const dateRowRange = sheet.getRange('E15:AI15');
      const dateRowValues = dateRowRange.getValues()[0];
      
-     Logger.log('📊 Date values in E15:AI15:', dateRowValues);
+     Logger.log('Date values in E15:AI15:', dateRowValues);
      
      let foundIndex = -1;
      for (let i = 0; i < dateRowValues.length; i++) {
@@ -1623,7 +1604,7 @@ function testSlackInteraction() {
          foundIndex = i;
          const colIndex = i + 4; // E=4
          const colLetter = String.fromCharCode(65 + colIndex);
-         Logger.log(`🎯 Found today (${todayDay}) at:`);
+         Logger.log(`Found today (${todayDay}) at:`);
          Logger.log(`   - Array index: ${i}`);
          Logger.log(`   - Column index: ${colIndex}`);
          Logger.log(`   - Column letter: ${colLetter}`);
@@ -1633,8 +1614,8 @@ function testSlackInteraction() {
      }
      
      if (foundIndex === -1) {
-       Logger.log(`❌ Today (${todayDay}) not found in date row!`);
-       Logger.log('📊 Available dates:', dateRowValues.filter(d => d !== ''));
+       Logger.log(`Today (${todayDay}) not found in date row!`);
+       Logger.log('Available dates:', dateRowValues.filter(d => d !== ''));
      } else {
        // Kiểm tra giá trị thực tế trong sheet
        const actualTodayCol = String.fromCharCode(65 + foundIndex + 4);
@@ -1645,9 +1626,9 @@ function testSlackInteraction() {
        const firstHabitRange = sheet.getRange('C16');
        const firstHabitName = firstHabitRange.getValue();
        if (firstHabitName) {
-         Logger.log(`🧪 Testing with first habit: "${firstHabitName}"`);
+         Logger.log(`Testing with first habit: "${firstHabitName}"`);
          const testCellAddress = `${actualTodayCol}16`;
-         Logger.log(`📍 Would update cell: ${testCellAddress}`);
+         Logger.log(`Would update cell: ${testCellAddress}`);
        }
      }
      
@@ -1661,8 +1642,8 @@ function testSlackInteraction() {
   */
  function getWebAppUrl() {
    const webAppUrl = ScriptApp.getService().getUrl();
-   Logger.log(`🔗 Web App URL: ${webAppUrl}`);
-   Logger.log('📋 Copy URL này và paste vào Slack App Interactivity settings');
+   Logger.log(`Web App URL: ${webAppUrl}`);
+   Logger.log('Copy URL này và paste vào Slack App Interactivity settings');
    return webAppUrl;
  }
  
@@ -1670,7 +1651,7 @@ function testSlackInteraction() {
   * Comprehensive test cho toàn bộ Slack integration workflow
   */
  function testCompleteSlackWorkflow() {
-   Logger.log('🧪 Testing Complete Slack Workflow...');
+   Logger.log('Testing Complete Slack Workflow...');
    
    try {
      // 1. Test gửi báo cáo với buttons
@@ -1685,23 +1666,23 @@ function testSlackInteraction() {
      Logger.log('💬 Step 3: Testing response message...');
      const mockResult = {
        success: true,
-       message: '🎉 Đã hoàn thành "Test Habit"! 🔥 Streak: 5 ngày'
+       message: 'Đã hoàn thành "Test Habit"! Streak: 5 ngày'
      };
      const responseMessage = buildSlackResponseMessage(mockResult, 'U1234567890');
-     Logger.log(`✅ Response message: ${JSON.stringify(responseMessage)}`);
+     Logger.log(`Response message: ${JSON.stringify(responseMessage)}`);
      
      // 4. Hiển thị Web App URL
-     Logger.log('🔗 Step 4: Getting Web App URL...');
+     Logger.log('Step 4: Getting Web App URL...');
      getWebAppUrl();
      
-     Logger.log('✅ Complete Slack workflow test finished!');
-     Logger.log('📋 Next steps:');
+     Logger.log('Complete Slack workflow test finished!');
+  Logger.log('Next steps:');
      Logger.log('   1. Deploy Web App với quyền "Anyone"');
      Logger.log('   2. Copy Web App URL vào Slack App Interactivity settings');
      Logger.log('   3. Test thực tế bằng cách gửi báo cáo và click buttons');
      
    } catch (error) {
-     Logger.log(`❌ Workflow test error: ${error.message}`);
+     Logger.log(`Workflow test error: ${error.message}`);
    }
  }
  
@@ -1715,40 +1696,40 @@ function testSlackInteraction() {
    
    // Check CONFIG
    if (!CONFIG.slackWebhookUrl || CONFIG.slackWebhookUrl.includes('YOUR/SLACK/WEBHOOK')) {
-     requirements.push('❌ Cần cập nhật slackWebhookUrl trong CONFIG');
+     requirements.push('MISSING: Cần cập nhật slackWebhookUrl trong CONFIG');
    } else {
-     requirements.push('✅ Slack Webhook URL configured');
+     requirements.push('OK: Slack Webhook URL configured');
    }
    
    if (!CONFIG.slackChannel) {
-     requirements.push('❌ Cần cập nhật slackChannel trong CONFIG');
+     requirements.push('MISSING: Cần cập nhật slackChannel trong CONFIG');
    } else {
-     requirements.push('✅ Slack Channel configured');
+     requirements.push('OK: Slack Channel configured');
    }
    
    if (!CONFIG.enableSlack) {
-     requirements.push('⚠️ enableSlack = false (tính năng đang tắt)');
+     requirements.push('WARNING: enableSlack = false (tính năng đang tắt)');
    } else {
-     requirements.push('✅ Slack enabled');
+     requirements.push('OK: Slack enabled');
    }
    
    // Check Google Sheets access
    try {
      const sheet = SpreadsheetApp.openById(CONFIG.spreadsheetId);
-     requirements.push('✅ Google Sheets access OK');
+     requirements.push('OK: Google Sheets access OK');
    } catch (error) {
-     requirements.push('❌ Không thể truy cập Google Sheets');
+     requirements.push('ERROR: Không thể truy cập Google Sheets');
    }
    
    // Display results
    requirements.forEach(req => Logger.log(req));
    
-   const allGood = requirements.every(req => req.startsWith('✅'));
+   const allGood = requirements.every(req => req.startsWith('OK:'));
    if (allGood) {
-     Logger.log('🎉 Tất cả requirements đã sẵn sàng!');
-     Logger.log('🚀 Có thể proceed với Slack integration');
+     Logger.log('Tất cả requirements đã sẵn sàng!');
+     Logger.log('Có thể proceed với Slack integration');
    } else {
-     Logger.log('⚠️ Cần hoàn thành các requirements trên trước khi tiếp tục');
+     Logger.log('Cần hoàn thành các requirements trên trước khi tiếp tục');
    }
    
    return allGood;

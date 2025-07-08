@@ -1,8 +1,8 @@
-# 🎯 Habit Tracker - Google Apps Script
+# Habit Tracker - Google Apps Script
 
-## ✨ Tính năng mới được cập nhật
+## Tính năng mới được cập nhật
 
-### 🌟 GitHub-style Contribution Visualization
+### GitHub-style Contribution Visualization
 Ứng dụng đã được nâng cấp với tính năng trực quan hóa lịch sử thói quen giống như GitHub contribution graph:
 
 - **Lưới màu 90 ngày**: Hiển thị lịch sử hoàn thành thói quen trong 90 ngày gần nhất
@@ -13,11 +13,11 @@
   - Xanh đậm (#239a3b): Hoạt động trung bình cao (≤75%)
   - Xanh rất đậm (#196127): Hoạt động cao (>75%)
 
-### 🌟 Icon sao được cập nhật
+### Icon sao được cập nhật
 - Thay đổi icon sao streak từ design cũ sang design mới tinh tế hơn
 - URL icon: `https://cdn-icons-png.flaticon.com/128/18245/18245248.png`
 
-## 🚀 Cách sử dụng
+## Cách sử dụng
 
 ### 1. Cấu hình Google Sheet
 ```javascript
@@ -36,7 +36,7 @@ const CONFIG = {
 ```javascript
 const EMAIL_CONFIG = {
   recipient: 'your-email@gmail.com',
-  subject: '📊 Báo cáo thói quen hàng ngày'
+  subject: 'Báo cáo thói quen hàng ngày'
 };
 ```
 
@@ -70,7 +70,7 @@ listCurrentTriggers();  // Kiểm tra trigger đang hoạt động
 deleteAllTriggers();    // Xóa tất cả trigger
 ```
 
-## 📊 Cấu trúc Google Sheet
+## Cấu trúc Google Sheet
 
 ```
      A        B        C    D    E    F    G    ...
@@ -83,57 +83,57 @@ deleteAllTriggers();    // Xóa tất cả trigger
 19  Thiền              ✓              ✓    
 ```
 
-## 🎨 Thiết kế Email
+## Thiết kế Email
 
 Email báo cáo bao gồm:
 
 1. **Header**: Ngày hiện tại và lời chào
 2. **Tổng quan tiến độ**: Progress bar và tỷ lệ hoàn thành
-3. **🆕 Lịch sử thói quen**: GitHub-style contribution grid
+3. **Lịch sử thói quen**: GitHub-style contribution grid
 4. **Thói quen đã hoàn thành**: Danh sách với streak
 5. **Thói quen chưa thực hiện**: Danh sách cần cải thiện
 6. **Thông điệp động lực**: Khuyến khích dựa trên hiệu suất
 
-## 🔧 Các hàm chính
+## Các hàm chính
 
 ### Core Functions
 - `sendDailyHabitReport()`: Gửi báo cáo hàng ngày
 - `analyzeHabits(sheet, CONFIG)`: Phân tích dữ liệu thói quen
-- `buildContributionGrid()`: 🆕 Tạo GitHub-style visualization
+- `buildContributionGrid()`: Tạo GitHub-style visualization
 
 ### Helper Functions
 - `calculateHabitStreak()`: Tính chuỗi ngày liên tiếp
 - `buildProgressBar()`: Tạo thanh tiến độ
 - `buildMotivationSection()`: Tạo thông điệp động lực
-- `getContributionIntensity()`: 🆕 Tính cường độ hoạt động
-- `getContributionColor()`: 🆕 Xác định màu sắc grid
+- `getContributionIntensity()`: Tính cường độ hoạt động
+- `getContributionColor()`: Xác định màu sắc grid
 
 ### Test Functions
-- `testContributionGrid()`: 🆕 Test tính năng visualization mới
+- `testContributionGrid()`: Test tính năng visualization mới
 - `testHabitTracker()`: Test tổng thể ứng dụng
 - `debugSheetStructure()`: Debug cấu trúc sheet
 
-## 🎯 Tính năng nổi bật
+## Tính năng nổi bật
 
-### ✅ Đã có
-- ✅ Phân tích thói quen thông minh
-- ✅ Tính toán streak (chuỗi ngày liên tiếp)
-- ✅ Perfect Day detection
-- ✅ Email responsive design
-- ✅ Trigger tự động
-- ✅ Error handling & retry mechanism
-- ✅ 🆕 GitHub-style contribution visualization
-- ✅ 🆕 Icon sao được cập nhật
+### Đã có
+- Phân tích thói quen thông minh
+- Tính toán streak (chuỗi ngày liên tiếp)
+- Perfect Day detection
+- Email responsive design
+- Trigger tự động
+- Error handling & retry mechanism
+- GitHub-style contribution visualization
+- Icon sao được cập nhật
 
-### 🚀 Có thể mở rộng
-- 📱 Web App interface
-- 📈 Báo cáo tuần/tháng
-- 🎯 Đặt mục tiêu cá nhân
-- 🔔 Thông báo thông minh
-- 📊 Analytics nâng cao
-- 🤝 Tính năng xã hội
+### Có thể mở rộng
+- Web App interface
+- Báo cáo tuần/tháng
+- Đặt mục tiêu cá nhân
+- Thông báo thông minh
+- Analytics nâng cao
+- Tính năng xã hội
 
-## 🛠️ Triển khai
+## Triển khai
 
 1. **Tạo Google Apps Script project**
 2. **Copy code vào editor**
@@ -142,7 +142,7 @@ Email báo cáo bao gồm:
 5. **Test với `testContributionGrid()`**
 6. **Thiết lập trigger với `createDailyTrigger()`**
 
-## 📝 Ghi chú kỹ thuật
+## Ghi chú kỹ thuật
 
 - **Hiệu suất**: Sử dụng batch operations cho Google Sheets
 - **Bảo mật**: Không hard-code sensitive data
@@ -152,4 +152,4 @@ Email báo cáo bao gồm:
 
 ---
 
-*Được thiết kế theo triết lý "Less, but better" - Tối giản nhưng hiệu quả* 🎯
+*Được thiết kế theo triết lý "Less, but better" - Tối giản nhưng hiệu quả*

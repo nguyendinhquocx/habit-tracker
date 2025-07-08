@@ -1,9 +1,9 @@
 # Hướng dẫn thiết lập Slack Integration cho Habit Tracker
 
-## 🚀 Tổng quan
+## Tổng quan
 Tính năng này cho phép gửi báo cáo thói quen hàng ngày qua Slack channel, sử dụng Slack Block Kit để tạo giao diện đẹp và dễ đọc.
 
-## 📋 Các bước thiết lập
+## Các bước thiết lập
 
 ### Bước 1: Tạo Slack App và Webhook
 
@@ -56,17 +56,17 @@ const CONFIG = {
    - Vào channel đã cấu hình
    - Xem có nhận được message test không
 
-## 🎨 Giao diện Slack Message
+## Giao diện Slack Message
 
 Message sẽ bao gồm:
-- **Header:** Tiêu đề với emoji (🎉 nếu Perfect Day)
+- **Header:** Tiêu đề (Perfect Day nếu hoàn thành tất cả)
 - **Thông tin ngày và tiến độ**
 - **Progress bar trực quan**
 - **Danh sách thói quen đã hoàn thành** (với streak)
 - **Danh sách thói quen chưa thực hiện**
 - **Thông điệp động viên**
 
-## ⚙️ Tùy chỉnh
+## Tùy chỉnh
 
 ### Thay đổi channel
 ```javascript
@@ -89,7 +89,7 @@ const payload = {
 };
 ```
 
-## 🔧 Troubleshooting
+## Troubleshooting
 
 ### Lỗi thường gặp:
 
@@ -111,7 +111,7 @@ const payload = {
 testSlackIntegration();
 ```
 
-## 📱 Tính năng nâng cao
+## Tính năng nâng cao
 
 ### Gửi báo cáo theo múi giờ
 Message sẽ tự động gửi theo lịch trigger đã thiết lập (3 lần/ngày).
@@ -122,7 +122,7 @@ Có thể mở rộng để:
 - Slash commands để xem báo cáo
 - Reminder notifications
 
-## 🔒 Bảo mật
+## Bảo mật
 
 - **Không chia sẻ Webhook URL** với người khác
 - **Webhook URL có quyền gửi message** vào workspace
@@ -130,4 +130,4 @@ Có thể mở rộng để:
 
 ---
 
-✅ **Hoàn tất!** Giờ bạn sẽ nhận được báo cáo thói quen đẹp mắt trên Slack mỗi ngày.
+**Hoàn tất!** Giờ bạn sẽ nhận được báo cáo thói quen đẹp mắt trên Slack mỗi ngày.
