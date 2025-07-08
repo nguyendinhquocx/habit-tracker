@@ -1816,23 +1816,50 @@ function handleSlashCommand(e) {
  */
 function handleHabitReportCommand(text, userId, userName) {
   try {
-    // Tạo báo cáo nhanh trực tiếp thay vì gọi sendDailyHabitReport
-    const reportData = generateQuickHabitReport();
+    // Gửi response ngay lập tức
+    const immediateResponse = {
+      response_type: 'in_channel',
+      text: `${userName} đã yêu cầu báo cáo habit. Đang xử lý...`
+    };
     
-    if (!reportData.success) {
-      return ContentService
-        .createTextOutput(JSON.stringify({
-          response_type: 'ephemeral',
-          text: `Lỗi: ${reportData.error}`
-        }))
-        .setMimeType(ContentService.MimeType.JSON);
-    }
-    
-    // Tạo Slack message với interactive buttons
-    const slackMessage = buildSlackHabitReport(reportData, userName);
+    // Chạy sendDailyHabitReport trong background
+    setTimeout(() => {
+      try {
+        sendDailyHabitReport();
+        
+        // Gửi follow-up message
+        const followUpMessage = {
+          channel: CONFIG.slackChannel,
+          text: `Báo cáo habit đã được gửi thành công bởi ${userName}!`,
+          username: 'Habit Tracker Bot'
+        };
+        
+        UrlFetchApp.fetch(CONFIG.slackWebhookUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          payload: JSON.stringify(followUpMessage)
+        });
+        
+      } catch (error) {
+        Logger.log(`Error in background habit report: ${error.message}`);
+        
+        // Gửi error message
+        const errorMessage = {
+          channel: CONFIG.slackChannel,
+          text: `Lỗi khi gửi báo cáo habit: ${error.message}`,
+          username: 'Habit Tracker Bot'
+        };
+        
+        UrlFetchApp.fetch(CONFIG.slackWebhookUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          payload: JSON.stringify(errorMessage)
+        });
+      }
+    }, 100);
     
     return ContentService
-      .createTextOutput(JSON.stringify(slackMessage))
+      .createTextOutput(JSON.stringify(immediateResponse))
       .setMimeType(ContentService.MimeType.JSON);
       
   } catch (error) {
@@ -1844,184 +1871,6 @@ function handleHabitReportCommand(text, userId, userName) {
       }))
       .setMimeType(ContentService.MimeType.JSON);
   }
-}
-
-/**
- * Tạo báo cáo habit nhanh cho Slack command (tối ưu performance)
- */
-function generateQuickHabitReport() {
-  try {
-    const startTime = new Date().getTime();
-    
-    // Mở spreadsheet với timeout protection
-    const ss = SpreadsheetApp.openById(CONFIG.spreadsheetId);
-    const sheet = ss.getSheetByName(CONFIG.sheetName);
-    
-    if (!sheet) {
-      return { success: false, error: `Sheet '${CONFIG.sheetName}' không tồn tại` };
-    }
-
-    const today = new Date();
-    const todayDay = today.getDate();
-    
-    // Lấy dữ liệu tối thiểu cần thiết
-    const dataRange = sheet.getRange(CONFIG.dataRange);
-    const values = dataRange.getValues();
-    
-    // Tìm cột ngày hôm nay
-    const dateRow = values[CONFIG.dateRow - 14];
-    let todayColIndex = -1;
-    
-    for (let col = 0; col < dateRow.length; col++) {
-      if (dateRow[col] == todayDay) {
-        todayColIndex = col;
-        break;
-      }
-    }
-    
-    if (todayColIndex === -1) {
-      return { success: false, error: `Không tìm thấy cột cho ngày ${todayDay}` };
-    }
-
-    // Phân tích thói quen (tối ưu)
-    const habits = analyzeHabits(values, todayColIndex, CONFIG);
-    const completedHabits = habits.filter(h => h.completed);
-    const pendingHabits = habits.filter(h => !h.completed);
-    const completionRate = habits.length > 0 ? (completedHabits.length / habits.length) * 100 : 0;
-    const isPerfectDay = pendingHabits.length === 0 && completedHabits.length > 0;
-    
-    const processingTime = new Date().getTime() - startTime;
-    Logger.log(`Quick habit report generated in ${processingTime}ms`);
-    
-    return {
-      success: true,
-      data: {
-        habits,
-        completedHabits,
-        pendingHabits,
-        completionRate,
-        isPerfectDay,
-        todayDay,
-        todayColIndex,
-        today,
-        processingTime
-      }
-    };
-    
-  } catch (error) {
-    Logger.log(`Error in generateQuickHabitReport: ${error.message}`);
-    return { success: false, error: error.message };
-  }
-}
-
-/**
- * Tạo thanh tiến độ cho Slack message
- */
-function buildSlackProgressBar(percentage) {
-  const totalBars = 10;
-  const filledBars = Math.round((percentage / 100) * totalBars);
-  const emptyBars = totalBars - filledBars;
-  
-  let progressBar = '';
-  for (let i = 0; i < filledBars; i++) {
-    progressBar += '█';
-  }
-  for (let i = 0; i < emptyBars; i++) {
-    progressBar += '░';
-  }
-  
-  return `\`${progressBar}\``;
-}
-
-/**
- * Tạo Slack message với interactive buttons cho habit report
- */
-function buildSlackHabitReport(reportData, userName) {
-  const { habits, completedHabits, pendingHabits, completionRate, isPerfectDay, todayDay, today } = reportData.data;
-  
-  // Header message
-  let text = `*🎯 Habit Report - ${todayDay}/${today.getMonth() + 1}/${today.getFullYear()}*\n`;
-  text += `Yêu cầu bởi: ${userName}\n\n`;
-  
-  // Progress overview
-  text += `📊 *Tiến độ:* ${completedHabits.length}/${habits.length} (${Math.round(completionRate)}%)\n`;
-  text += buildSlackProgressBar(completionRate) + '\n\n';
-  
-  // Perfect day celebration
-  if (isPerfectDay) {
-    text += `🎉 *PERFECT DAY!* Tất cả thói quen đã hoàn thành!\n\n`;
-  }
-  
-  // Completed habits
-  if (completedHabits.length > 0) {
-    text += `✅ *Đã hoàn thành (${completedHabits.length}):*\n`;
-    completedHabits.forEach(habit => {
-      const streakText = habit.streak > 0 ? ` (${habit.streak} ngày)` : '';
-      text += `• ${habit.name}${streakText}\n`;
-    });
-    text += '\n';
-  }
-  
-  // Pending habits with action buttons
-  if (pendingHabits.length > 0) {
-    text += `⏳ *Chưa thực hiện (${pendingHabits.length}):*\n`;
-    pendingHabits.forEach(habit => {
-      text += `• ${habit.name}\n`;
-    });
-  }
-  
-  // Create interactive buttons for pending habits
-  const blocks = [
-    {
-      type: 'section',
-      text: {
-        type: 'mrkdwn',
-        text: text
-      }
-    }
-  ];
-  
-  // Add action buttons for pending habits (max 5 buttons per block)
-  if (pendingHabits.length > 0) {
-    const buttonElements = [];
-    
-    pendingHabits.slice(0, 5).forEach(habit => {
-      buttonElements.push({
-        type: 'button',
-        text: {
-          type: 'plain_text',
-          text: `✓ ${habit.name.length > 20 ? habit.name.substring(0, 17) + '...' : habit.name}`
-        },
-        value: `complete_habit_${habit.name}_${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`,
-        action_id: `complete_habit_${habit.name.replace(/\s+/g, '_')}`
-      });
-    });
-    
-    if (buttonElements.length > 0) {
-      blocks.push({
-        type: 'actions',
-        elements: buttonElements
-      });
-    }
-    
-    // If more than 5 pending habits, add a note
-    if (pendingHabits.length > 5) {
-      blocks.push({
-        type: 'context',
-        elements: [
-          {
-            type: 'mrkdwn',
-            text: `_Hiển thị 5/${pendingHabits.length} thói quen. Sử dụng \`/habit-status\` để xem tất cả._`
-          }
-        ]
-      });
-    }
-  }
-  
-  return {
-    response_type: 'in_channel',
-    blocks: blocks
-  };
 }
 
 /**
