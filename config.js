@@ -73,7 +73,7 @@ function initializeConfig() {
     'EMAIL_TO': 'quoc.nguyen3@hoanmy.com',
     
     // Slack Configuration
-    'SLACK_WEBHOOK_URL': 'https://hooks.slack.com/services/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',
+    'SLACK_WEBHOOK_URL': 'https://hooks.slack.com/services/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',
     'SLACK_CHANNEL': '#habit',
     'ENABLE_SLACK': 'true',
     
@@ -113,7 +113,7 @@ function getAppConfig() {
     emailTo: getConfig('EMAIL_TO', 'quoc.nguyen3@hoanmy.com'),
     
     // Slack Configuration
-    slackWebhookUrl: getConfig('SLACK_WEBHOOK_URL', 'https://hooks.slack.com/services/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'),
+    slackWebhookUrl: getConfig('SLACK_WEBHOOK_URL', 'https://hooks.slack.com/services/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'),
     slackChannel: getConfig('SLACK_CHANNEL', '#habit'),
     enableSlack: getConfig('ENABLE_SLACK', true),
     

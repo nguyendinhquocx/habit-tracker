@@ -375,27 +375,18 @@ function generateQuickHabitReport(config) {
     throw new Error(`Sheet '${config.sheetName}' not found`);
   }
 
-  const today = new Date();
-  const todayDay = today.getDate();
+  // FIXED: Use the updated findTodayColumn function for consistency
+  const todayColIndex = findTodayColumn(sheet, config);
   
+  if (todayColIndex === -1) {
+    const today = new Date();
+    const todayDay = today.getDate();
+    throw new Error(`Column for day ${todayDay} not found`);
+  }
+
   // Get data range
   const dataRange = sheet.getRange(config.dataRange);
   const values = dataRange.getValues();
-  
-  // Find today's column
-  const dateRow = values[config.dateRow - 14]; // Adjust for array index
-  let todayColIndex = -1;
-  
-  for (let col = 0; col < dateRow.length; col++) {
-    if (dateRow[col] == todayDay) {
-      todayColIndex = col;
-      break;
-    }
-  }
-  
-  if (todayColIndex === -1) {
-    throw new Error(`Column for day ${todayDay} not found`);
-  }
 
   // Analyze habits
   const habits = analyzeHabits(values, todayColIndex, config);
@@ -404,6 +395,8 @@ function generateQuickHabitReport(config) {
   const completionRate = habits.length > 0 ? (completedHabits.length / habits.length) * 100 : 0;
   const isPerfectDay = pendingHabits.length === 0 && completedHabits.length > 0;
   
+  const today = new Date();
+  
   return {
     habits,
     completedHabits,
@@ -411,7 +404,7 @@ function generateQuickHabitReport(config) {
     completionRate,
     isPerfectDay,
     today,
-    todayDay
+    todayDay: today.getDate()
   };
 }
 

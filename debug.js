@@ -81,7 +81,7 @@ function enableSlack() {
   // Set webhook URL if not already set
   const currentWebhook = getConfig('SLACK_WEBHOOK_URL', '');
   if (!currentWebhook || currentWebhook === '') {
-    const defaultWebhook = 'https://hooks.slack.com/services/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';
+    const defaultWebhook = 'https://hooks.slack.com/services/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';
     setConfig('SLACK_WEBHOOK_URL', defaultWebhook);
     Logger.log('📡 Webhook URL set to default value');
   }

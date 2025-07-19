@@ -25,7 +25,7 @@ function analyzeHabits(values, todayColIndex, config) {
     for (let row = startRow; row < values.length; row++) {
       const rowData = values[row];
       
-      // Get habit name from column C (index 0 in our data range)
+      // Get habit name from column C (index 0 in our data range C14:AI31)
       const habitName = rowData[0];
       
       // Skip empty rows
@@ -33,15 +33,25 @@ function analyzeHabits(values, todayColIndex, config) {
         continue;
       }
       
+      // FIXED: Điều chỉnh todayColIndex để phù hợp với data range
+      // Data range C14:AI31 có cột C là habit names, cột D là trống, cột E trở đi là dữ liệu
+      // findTodayColumn trả về index relative to column C, nhưng dữ liệu bắt đầu từ cột E
+      // Vậy cần trừ đi 2 để có index trong phần dữ liệu (E=2 relative to C)
+      const dataStartIndex = 2; // Cột E trong range C14:AI31
+      const todayValueIndex = todayColIndex; // todayColIndex đã bao gồm offset từ C
+      
       // Get today's completion status
-      const todayValue = rowData[todayColIndex];
+      const todayValue = rowData[todayValueIndex];
       const completed = isHabitCompleted(todayValue);
       
-      // Calculate streak
-      const streak = calculateStreak(rowData, todayColIndex, completed);
+      // Calculate streak với dữ liệu từ cột E trở đi
+      const dataOnlyRow = rowData.slice(dataStartIndex);
+      // Điều chỉnh todayColIndex cho phần dữ liệu (trừ đi dataStartIndex)
+      const todayDataIndex = todayColIndex - dataStartIndex;
+      const streak = calculateStreak(dataOnlyRow, todayDataIndex, completed);
       
       // Get habit statistics
-      const stats = calculateHabitStats(rowData, todayColIndex);
+      const stats = calculateHabitStats(dataOnlyRow, todayDataIndex);
       
       habits.push({
         name: habitName.toString().trim(),
@@ -49,14 +59,17 @@ function analyzeHabits(values, todayColIndex, config) {
         streak: streak,
         todayValue: todayValue,
         stats: stats,
-        rowIndex: row + 14 // Convert back to sheet row number
+        rowIndex: row + 14, // Convert back to sheet row number
+        dataStartIndex: dataStartIndex,
+        todayValueIndex: todayValueIndex
       });
     }
     
     if (config.debugMode) {
-      Logger.log(`Analyzed ${habits.length} habits`);
+      Logger.log(`✅ Analyzed ${habits.length} habits (FIXED VERSION)`);
       habits.forEach(habit => {
         Logger.log(`  ${habit.completed ? '[DONE]' : '[PENDING]'} ${habit.name} (streak: ${habit.streak})`);
+        Logger.log(`    Today's value: "${habit.todayValue}" at index ${habit.todayValueIndex} (raw data index: ${habit.todayValueIndex - 2})`);
       });
     }
     
@@ -418,17 +431,26 @@ function findTodayColumn(sheet, config) {
     const today = new Date();
     const todayDay = today.getDate();
     
-    // Read the date row
-    const dateRowRange = sheet.getRange(`${config.dataStartCol}${config.dateRow}:AI${config.dateRow}`);
+    // FIXED: Read the date row from the full data range C14:AI31
+    const dateRowRange = sheet.getRange(`C${config.dateRow}:AI${config.dateRow}`);
     const dateRowValues = dateRowRange.getValues()[0];
     
-    // Find today's column
+    if (config.debugMode) {
+      Logger.log(`🔍 Looking for day ${todayDay} in date row`);
+      Logger.log(`📅 Date row values: ${dateRowValues.slice(0, 10)}...`);
+    }
+    
+    // Find today's column in the full range (C to AI)
     for (let col = 0; col < dateRowValues.length; col++) {
       if (dateRowValues[col] == todayDay) {
+        if (config.debugMode) {
+          Logger.log(`✅ Found day ${todayDay} at column index ${col} (relative to C)`);
+        }
         return col;
       }
     }
     
+    Logger.log(`❌ Day ${todayDay} not found in date row`);
     return -1;
   } catch (error) {
     Logger.log(`Error finding today's column: ${error.message}`);
