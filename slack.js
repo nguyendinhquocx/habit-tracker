@@ -163,11 +163,28 @@ function buildSlackMessage(reportData, config) {
 
 /**
  * Get motivation message based on completion rate
+ * Uses daily lessons from Google Sheet or fallback to default messages
  * @param {boolean} isPerfectDay - Whether it's a perfect day
  * @param {number} completionRate - Completion percentage
  * @returns {string} Motivation message
  */
 function getMotivationMessage(isPerfectDay, completionRate) {
+  try {
+    // Try to get daily lessons from Google Sheet
+    const lessons = getRandomLessons(4); // Get 2 lessons for Slack
+    
+    if (lessons && lessons.length > 0) {
+      let motivationText = "*Bài học hôm nay:*\n";
+      lessons.forEach((lesson, index) => {
+        motivationText += `• ${lesson.baiHoc}\n`;
+      });
+      return motivationText.trim();
+    }
+  } catch (error) {
+    Logger.log(`⚠️ Could not load daily lessons for Slack: ${error.message}`);
+  }
+  
+  // Fallback to default motivation messages
   if (isPerfectDay) {
     return "*Tuyệt vời!* Bạn đã hoàn thành tất cả thói quen hôm nay. Hãy tiếp tục duy trì!";
   } else if (completionRate >= 80) {

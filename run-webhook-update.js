@@ -11,7 +11,7 @@ function runWebhookUpdate() {
   
   try {
     // Cập nhật webhook URL mới trong PropertiesService
-    const newWebhookUrl = 'https://hooks.slack.com/services/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';
+    const newWebhookUrl = 'https://hooks.slack.com/services/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';
     
     Logger.log('🔄 Updating PropertiesService with new webhook...');
     PropertiesService.getUserProperties().setProperty('SLACK_WEBHOOK_URL', newWebhookUrl);
@@ -84,5 +84,5 @@ function showInstructions() {
   Logger.log('2. Chạy runWebhookUpdate() để cập nhật webhook mới');
   Logger.log('3. Sau khi thành công, chạy lại habit tracker để test');
   Logger.log('');
-  Logger.log('Webhook mới: https://hooks.slack.com/services/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');
+  Logger.log('Webhook mới: https://hooks.slack.com/services/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');
 }

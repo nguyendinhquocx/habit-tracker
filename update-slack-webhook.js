@@ -4,7 +4,7 @@
 function updateSlackWebhook() {
   Logger.log('=== UPDATING SLACK WEBHOOK URL ===');
   
-  const newWebhookUrl = 'https://hooks.slack.com/services/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';
+  const newWebhookUrl = 'https://hooks.slack.com/services/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';
   
   // Update the configuration
   setConfig('SLACK_WEBHOOK_URL', newWebhookUrl);
