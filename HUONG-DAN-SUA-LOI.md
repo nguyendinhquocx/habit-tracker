@@ -202,6 +202,73 @@ sendDailyHabitReport();
    debugSheetReading();
    ```
 
+3. **Test tích hợp bài học hàng ngày:**
+   ```javascript
+   testDailyLessonsIntegration();
+   ```
+
+## 📚 Tính năng Bài học Hàng ngày
+
+### Mô tả:
+Hệ thống đã được tích hợp với Google Sheet chứa bài học hàng ngày. Mỗi lần gửi email báo cáo, thay vì hiển thị các câu động viên cố định, hệ thống sẽ lấy ngẫu nhiên 4 bài học từ Google Sheet để hiển thị.
+
+### Cấu hình Google Sheet:
+- **Sheet ID:** `1yTWfP2PwkBvJ8WYR-d0jeE-OZJaf7snZDdBLI09gXnA`
+- **Sheet Name:** `bai hoc moi ngay`
+- **Cột A:** Ngày (tùy chọn)
+- **Cột B:** Bài học (nội dung chính)
+
+### Cách hoạt động:
+1. Hệ thống đọc tất cả bài học từ cột B
+2. Chọn ngẫu nhiên 4 bài học
+3. Hiển thị trong email (cả HTML và plain text)
+4. Nếu không đọc được bài học, sẽ fallback về câu động viên cũ
+
+### Test và kiểm tra:
+```javascript
+// Test đầy đủ tích hợp bài học
+testDailyLessonsIntegration();
+
+// Test nhanh chỉ bài học
+quickTestLessons();
+
+// Test email với bài học
+testEmailWithLessons();
+
+// Test với sheet tùy chỉnh
+testCustomSheet('SHEET_ID', 'SHEET_NAME');
+
+// Xem hướng dẫn sử dụng
+showUsageInstructions();
+```
+
+### Các file liên quan:
+- `daily-lessons.js` - Module chính xử lý bài học
+- `test-daily-lessons-integration.js` - File test tích hợp
+- `email.js` - Đã được cập nhật để sử dụng bài học
+
+### Troubleshooting bài học:
+1. **Không hiển thị bài học:**
+   ```javascript
+   // Kiểm tra kết nối Google Sheet
+   getDailyLessons();
+   ```
+
+2. **Lỗi đọc sheet:**
+   ```javascript
+   // Kiểm tra quyền truy cập sheet
+   testCustomSheet('1yTWfP2PwkBvJ8WYR-d0jeE-OZJaf7snZDdBLI09gXnA', 'bai hoc moi ngay');
+   ```
+
+3. **Email vẫn hiển thị câu động viên cũ:**
+   ```javascript
+   // Test motivation section
+   buildMotivationSection(false, 75, { sectionTitle: '#333' });
+   ```
+   ```javascript
+   debugSheetReading();
+   ```
+
 3. **Kiểm tra logic hoàn thành:**
    ```javascript
    debugHabitCompletedLogic();
