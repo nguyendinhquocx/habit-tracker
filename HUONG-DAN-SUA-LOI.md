@@ -54,25 +54,101 @@ quicktest();
 testUserIssue(getConfig());
 ```
 
-### 2. Chạy test tổng thể
+### 2. Test Slack webhook:
+```javascript
+// Test nhanh webhook
+testSlackQuick();
+
+// Test chi tiết webhook
+diagnoseSlackWebhook();
+```
+
+### 3. Chạy test tổng thể
 ```javascript
 // Trong Google Apps Script Editor
 testAllFixes();
 ```
 
-### 3. Chạy test nhanh cho vấn đề cụ thể
+### 4. Chạy test nhanh cho vấn đề cụ thể
 ```javascript
 // Kiểm tra vấn đề người dùng báo cáo
 quickTest();
 ```
 
-### 4. Chạy test từng phần
+### 5. Chạy test từng phần
 ```javascript
 // Test riêng từng function
 testUserIssue();           // Test vấn đề cụ thể
 testFindTodayColumn();      // Test tìm cột ngày
 testAnalyzeHabits();       // Test phân tích habits
+testEmailFix();            // Test email
+testHabitFix();            // Test habit analysis
+testConfigFix();           // Test configuration
 ```
+
+## 🔧 Lỗi Slack Webhook (404 Error)
+
+### Vấn đề:
+Lỗi "Request failed for `https://hooks.slack.com` returned code 404. Truncated server response: no_service" xảy ra khi:
+- Slack webhook URL đã bị vô hiệu hóa
+- URL webhook không đúng hoặc đã thay đổi
+- Slack workspace có thay đổi cài đặt
+
+### Giải pháp:
+
+#### 1. Kiểm tra webhook hiện tại:
+```javascript
+diagnoseSlackWebhook()  // Chạy trong Google Apps Script
+```
+
+#### 2. Tạo webhook mới trong Slack:
+1. Vào Slack workspace của bạn
+2. Đi tới **Apps** → **Incoming Webhooks**
+3. Tạo webhook mới cho channel mong muốn
+4. Copy URL webhook mới
+
+#### 3. Cập nhật URL webhook:
+```javascript
+// Cách 1: Sử dụng hàm helper
+setSlackWebhook('https://hooks.slack.com/services/YOUR/NEW/WEBHOOK');
+
+// Cách 2: Cập nhật trực tiếp trong config
+setConfig('SLACK_WEBHOOK_URL', 'https://hooks.slack.com/services/YOUR/NEW/WEBHOOK');
+
+// Cách 3: Sử dụng hàm cập nhật nhanh (đã tạo sẵn)
+quickUpdateAndTest();  // Cập nhật và test luôn
+```
+
+#### 4. Cập nhật PropertiesService và kiểm tra:
+
+**Cách 1: Sử dụng file run-webhook-update.js (Khuyến nghị)**
+1. Mở file `run-webhook-update.js`
+2. Copy toàn bộ code
+3. Paste vào Google Apps Script Editor
+4. Chạy hàm `runWebhookUpdate()`
+
+**Cách 2: Chạy manual trong Apps Script Console**
+```javascript
+// Kiểm tra cấu hình hiện tại
+checkCurrentConfig();
+
+// Cập nhật webhook mới
+runWebhookUpdate();
+
+// Test webhook
+testNewWebhook();
+```
+
+#### 5. Test webhook mới:
+```javascript
+testSlackWebhookOnly()  // Test đơn giản
+testSlackQuick()        // Test với diagnostic
+```
+
+### Lưu ý:
+- Webhook URL phải bắt đầu bằng `https://hooks.slack.com/services/`
+- Mỗi webhook chỉ hoạt động với một channel cụ thể
+- Nếu workspace thay đổi, cần tạo webhook mới
 
 ## Cách sử dụng sau khi sửa lỗi
 

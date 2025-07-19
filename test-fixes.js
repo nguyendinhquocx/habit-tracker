@@ -336,6 +336,46 @@ function testIndexFix() {
   }
 }
 
+/**
+ * Test Slack webhook quickly
+ */
+function testSlackQuick() {
+  Logger.log('=== QUICK SLACK TEST ===');
+  
+  // Load the test functions
+  if (typeof diagnoseSlackWebhook === 'undefined') {
+    Logger.log('❌ Slack test functions not loaded. Make sure test-slack-webhook.js is available.');
+    return false;
+  }
+  
+  return diagnoseSlackWebhook();
+}
+
+/**
+ * Test new webhook after update
+ */
+function testNewWebhook() {
+  Logger.log('=== TESTING NEW WEBHOOK ===');
+  
+  const config = getAppConfig();
+  Logger.log(`Current webhook: ${config.slackWebhookUrl}`);
+  
+  // Check if it's the new webhook
+  if (config.slackWebhookUrl.includes('B096GH78DCN')) {
+    Logger.log('✅ New webhook URL detected');
+  } else {
+    Logger.log('⚠️ Old webhook URL still in use');
+  }
+  
+  // Test the webhook
+  if (typeof testSlackWebhookOnly === 'function') {
+    return testSlackWebhookOnly();
+  } else {
+    Logger.log('❌ Test function not available. Please load test-slack-webhook.js');
+    return false;
+  }
+}
+
 // Export functions
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
