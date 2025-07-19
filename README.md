@@ -1,155 +1,403 @@
-# Habit Tracker - Google Apps Script
+# Habit Tracker v2.0
 
-## Tính năng mới được cập nhật
+A comprehensive habit tracking system built with Google Apps Script, featuring modular architecture, email reports, and Slack integration.
 
-### GitHub-style Contribution Visualization
-Ứng dụng đã được nâng cấp với tính năng trực quan hóa lịch sử thói quen giống như GitHub contribution graph:
+## Features
 
-- **Lưới màu 90 ngày**: Hiển thị lịch sử hoàn thành thói quen trong 90 ngày gần nhất
-- **Màu sắc theo cường độ**: 
-  - Xám (#ebedf0): Không hoạt động
-  - Xanh nhạt (#c6e48b): Hoạt động thấp (≤25%)
-  - Xanh vừa (#7bc96f): Hoạt động trung bình thấp (≤50%)
-  - Xanh đậm (#239a3b): Hoạt động trung bình cao (≤75%)
-  - Xanh rất đậm (#196127): Hoạt động cao (>75%)
+- **Google Sheets Integration**: Track habits directly in Google Sheets
+- **Email Reports**: Daily habit reports with beautiful HTML formatting
+- **Slack Integration**: Interactive Slack commands and notifications
+- **Advanced Analytics**: Streaks, completion rates, and trend analysis
+- **Modular Architecture**: Clean, maintainable code structure
+- **Performance Optimized**: Fast execution with smart caching
+- **Environment Variables**: Secure configuration management
+- **Comprehensive Testing**: Built-in test functions
 
-### Icon sao được cập nhật
-- Thay đổi icon sao streak từ design cũ sang design mới tinh tế hơn
-- URL icon: `https://cdn-icons-png.flaticon.com/128/18245/18245248.png`
+## Architecture
 
-## Cách sử dụng
+The system is built with a modular architecture for better maintainability:
 
-### 1. Cấu hình Google Sheet
+```
+habit-tracker/
+├── main.js          # Main application entry point
+├── config.js        # Configuration management
+├── utils.js         # Utility functions and helpers
+├── habits.js        # Habit analysis and tracking logic
+├── reports.js       # Report generation and analytics
+├── email.js         # Email functionality
+├── slack.js         # Slack integration
+└── README.md        # This documentation
+```
+
+### Module Overview
+
+- **`main.js`**: Core application logic, HTTP handlers, and system initialization
+- **`config.js`**: Configuration management with environment variable support
+- **`utils.js`**: Utility functions for dates, strings, arrays, validation, and performance
+- **`habits.js`**: Habit analysis, streak calculation, and completion tracking
+- **`reports.js`**: Daily, weekly, and monthly report generation with insights
+- **`email.js`**: Email template building and sending functionality
+- **`slack.js`**: Slack integration with slash commands and interactive buttons
+
+## Quick Start
+
+### 1. Setup Google Apps Script Project
+
+1. Go to [Google Apps Script](https://script.google.com/)
+2. Create a new project
+3. Copy all module files into your project
+4. Save the project
+
+### 2. Initialize the System
+
+Run the initialization function:
+
 ```javascript
-const CONFIG = {
-  SPREADSHEET_ID: 'your-spreadsheet-id',
-  SHEET_NAME: 'habit',
-  DATA_RANGE: 'C14:AI31',
-  MONTH_YEAR_CELL: 'C9',
-  DATE_ROW: 15,
-  HABIT_NAME_COL: 1,
-  HABIT_DATA_COL: 3
-};
+initializeHabitTracker()
 ```
 
-### 2. Thiết lập Email
+This will:
+- Initialize configuration
+- Run interactive setup
+- Test all modules
+- Provide next steps
+
+### 3. Configure Your Settings
+
+Run the setup function for interactive configuration:
+
 ```javascript
-const EMAIL_CONFIG = {
-  recipient: 'your-email@gmail.com',
-  subject: 'Báo cáo thói quen hàng ngày'
-};
+setupConfig()
 ```
 
-### 3. Chạy ứng dụng
+Or use quick setup:
 
-#### Gửi báo cáo thủ công:
 ```javascript
-sendDailyHabitReport();
+quickSetup()
 ```
 
-#### Test tính năng mới:
+### 4. Set Up Triggers
+
+Create automatic daily reports:
+
 ```javascript
-testContributionGrid();
+createTriggers()
 ```
 
-#### Tạo trigger tự động:
+### 5. Deploy as Web App (for Slack)
 
-**Trigger đơn (8:00 sáng):**
+1. Click "Deploy" > "New deployment"
+2. Choose "Web app" as type
+3. Set execute as "Me"
+4. Set access to "Anyone"
+5. Deploy and copy the URL
+
+## Google Sheets Setup
+
+### Sheet Structure
+
+Your Google Sheet should have the following structure:
+
+```
+     A    B    C    D    E    F    G    H    ...
+1                     1    2    3    4    5    ... (days)
+2   
+3   
+...
+15                   [Date row with day numbers]
+16        Habit 1     ✓    ✓    ✗    ✓    ✓    ...
+17        Habit 2     ✓    ✗    ✓    ✓    ✗    ...
+18        Habit 3     ✗    ✓    ✓    ✓    ✓    ...
+...
+```
+
+### Configuration
+
+- **Date Row**: Row 15 contains day numbers (1, 2, 3, ...)
+- **Habit Names**: Column C contains habit names
+- **Data Range**: C1:AI31 (covers full month)
+- **Completion Values**: Use `TRUE`/`FALSE`, `✓`/`✗`, or `1`/`0`
+
+## Configuration
+
+### Environment Variables
+
+The system supports environment variables through Google Apps Script's PropertiesService:
+
 ```javascript
-createDailyTrigger(); // Gửi báo cáo lúc 8:00 sáng hàng ngày
+// Set configuration
+setConfig('SPREADSHEET_ID', 'your-spreadsheet-id')
+setConfig('SHEET_NAME', 'Habits')
+setConfig('EMAIL_TO', 'your-email@example.com')
+setConfig('SLACK_WEBHOOK_URL', 'your-slack-webhook-url')
+setConfig('SLACK_CHANNEL', '#habits')
+setConfig('ENABLE_SLACK', 'true')
+setConfig('DEBUG_MODE', 'false')
 ```
 
-**Trigger nhiều lần trong ngày (7:00, 11:30, 19:00):**
+### Configuration Options
+
+| Setting | Description | Required | Default |
+|---------|-------------|----------|----------|
+| `SPREADSHEET_ID` | Google Sheets ID | ✅ | - |
+| `SHEET_NAME` | Sheet name | ✅ | 'Habits' |
+| `EMAIL_TO` | Email recipient | ✅ | - |
+| `SLACK_WEBHOOK_URL` | Slack webhook URL | ❌ | - |
+| `SLACK_CHANNEL` | Slack channel | ❌ | '#general' |
+| `ENABLE_SLACK` | Enable Slack integration | ❌ | false |
+| `DEBUG_MODE` | Enable debug logging | ❌ | false |
+
+## Slack Integration
+
+### Setup Slack App
+
+1. Go to [Slack API](https://api.slack.com/apps)
+2. Create a new app
+3. Configure the following features:
+
+#### Incoming Webhooks
+- Enable Incoming Webhooks
+- Add webhook to your workspace
+- Copy the webhook URL
+
+#### Slash Commands
+Add these slash commands:
+
+- `/habit-report` - Get daily habit report
+- `/habit-status` - Check current status
+- `/habit-help` - Show help information
+
+#### Interactive Components
+- Enable Interactivity
+- Set Request URL to your web app URL
+
+#### Bot Token Scopes
+Add these scopes:
+- `chat:write`
+- `commands`
+- `incoming-webhook`
+
+### Slack Commands
+
+- **`/habit-report`**: Get interactive daily report with completion buttons
+- **`/habit-status`**: Quick status overview
+- **`/habit-help`**: Show available commands and help
+
+### Interactive Features
+
+- ✅ **Complete Habit Buttons**: Click to mark habits as completed
+- 📊 **Real-time Updates**: Instant feedback with updated progress
+- 🎯 **Smart Notifications**: Motivational messages based on streaks
+
+## Email Reports
+
+### Features
+
+- **Beautiful HTML Templates**: Professional-looking reports
+- **Progress Visualization**: Color-coded progress bars
+- **Streak Information**: Current and longest streaks
+- **Motivational Content**: Dynamic encouragement messages
+- **Responsive Design**: Works on desktop and mobile
+
+### Customization
+
+Email templates can be customized in `email.js`:
+
 ```javascript
-createMultipleDailyTriggers(); // Gửi báo cáo 3 lần/ngày
+// Modify email template
+function buildEmailTemplate(reportData, insights, config) {
+  // Customize HTML template here
+}
 ```
 
-**Quản lý trigger:**
+## Analytics & Reports
+
+### Daily Reports
+- Habit completion status
+- Current streaks
+- Completion percentage
+- Motivational insights
+
+### Weekly Reports
+- Week-over-week progress
+- Consistency analysis
+- Best and worst days
+- Trend identification
+
+### Monthly Reports
+- Monthly statistics
+- Habit performance trends
+- Long-term pattern analysis
+- Achievement highlights
+
+## Testing
+
+### Available Test Functions
+
 ```javascript
-listCurrentTriggers();  // Kiểm tra trigger đang hoạt động
-deleteAllTriggers();    // Xóa tất cả trigger
+// Test individual modules
+testHabitAnalysis(config)      // Test habit tracking logic
+testReportGeneration(config)   // Test report generation
+testEmailReport(config)        // Test email functionality
+testSlackIntegration(config)   // Test Slack integration
+
+// Comprehensive testing
+runSystemTests()               // Run all tests
+showSystemStatus()            // Show system status
 ```
 
-## Cấu trúc Google Sheet
+### Performance Testing
 
+```javascript
+// Test ultra-fast habit completion (for Slack)
+handleCompleteHabitUltraFast('Habit Name', config)
+
+// Performance monitoring
+PerformanceUtils.measureTime(() => {
+  // Your code here
+})
 ```
-     A        B        C    D    E    F    G    ...
-9              Tháng/Năm: 12/2024
-14
-15                     1    2    3    4    5    ...
-16  Đọc sách           ✓    ✓         ✓    ✓
-17  Tập thể dục        ✓         ✓    ✓    
-18  Uống nước          ✓    ✓    ✓    ✓    ✓
-19  Thiền              ✓              ✓    
+
+## Maintenance
+
+### Regular Tasks
+
+1. **Monitor Logs**: Check execution logs regularly
+2. **Update Triggers**: Refresh triggers if needed
+3. **Backup Data**: Regular Google Sheets backups
+4. **Test Integration**: Periodic integration testing
+
+### Troubleshooting
+
+#### Common Issues
+
+1. **"Sheet not found"**
+   - Check spreadsheet ID and sheet name
+   - Verify permissions
+
+2. **"Email sending failed"**
+   - Check email address format
+   - Verify Gmail quota limits
+
+3. **"Slack integration not working"**
+   - Verify webhook URL
+   - Check Slack app configuration
+   - Ensure web app is deployed correctly
+
+4. **"Triggers not firing"**
+   - Check trigger configuration
+   - Verify script permissions
+   - Look for execution errors
+
+### Debug Mode
+
+Enable debug mode for detailed logging:
+
+```javascript
+setConfig('DEBUG_MODE', 'true')
 ```
 
-## Thiết kế Email
+## Security
 
-Email báo cáo bao gồm:
+### Best Practices
 
-1. **Header**: Ngày hiện tại và lời chào
-2. **Tổng quan tiến độ**: Progress bar và tỷ lệ hoàn thành
-3. **Lịch sử thói quen**: GitHub-style contribution grid
-4. **Thói quen đã hoàn thành**: Danh sách với streak
-5. **Thói quen chưa thực hiện**: Danh sách cần cải thiện
-6. **Thông điệp động lực**: Khuyến khích dựa trên hiệu suất
+- **Environment Variables**: Store sensitive data in PropertiesService
+- **Access Control**: Limit script and sheet access
+- **Regular Updates**: Keep dependencies updated
+- **Audit Logs**: Monitor script execution logs
 
-## Các hàm chính
+### Data Privacy
 
-### Core Functions
-- `sendDailyHabitReport()`: Gửi báo cáo hàng ngày
-- `analyzeHabits(sheet, CONFIG)`: Phân tích dữ liệu thói quen
-- `buildContributionGrid()`: Tạo GitHub-style visualization
+- Habit data stays in your Google Sheets
+- Email reports sent only to configured recipients
+- Slack integration uses your workspace only
+- No external data storage or tracking
 
-### Helper Functions
-- `calculateHabitStreak()`: Tính chuỗi ngày liên tiếp
-- `buildProgressBar()`: Tạo thanh tiến độ
-- `buildMotivationSection()`: Tạo thông điệp động lực
-- `getContributionIntensity()`: Tính cường độ hoạt động
-- `getContributionColor()`: Xác định màu sắc grid
+## Advanced Usage
 
-### Test Functions
-- `testContributionGrid()`: Test tính năng visualization mới
-- `testHabitTracker()`: Test tổng thể ứng dụng
-- `debugSheetStructure()`: Debug cấu trúc sheet
+### Custom Habit Analysis
 
-## Tính năng nổi bật
+```javascript
+// Custom habit filtering
+const completedHabits = habits.filter(h => h.completed)
+const longStreaks = habits.filter(h => h.streak >= 7)
 
-### Đã có
-- Phân tích thói quen thông minh
-- Tính toán streak (chuỗi ngày liên tiếp)
-- Perfect Day detection
-- Email responsive design
-- Trigger tự động
-- Error handling & retry mechanism
-- GitHub-style contribution visualization
-- Icon sao được cập nhật
+// Custom statistics
+const customStats = {
+  weekendCompletion: calculateWeekendStats(habits),
+  morningHabits: filterMorningHabits(habits),
+  difficulty: calculateDifficulty(habits)
+}
+```
 
-### Có thể mở rộng
-- Web App interface
-- Báo cáo tuần/tháng
-- Đặt mục tiêu cá nhân
-- Thông báo thông minh
-- Analytics nâng cao
-- Tính năng xã hội
+### Custom Email Templates
 
-## Triển khai
+```javascript
+// Add custom sections to email
+function buildCustomEmailSection(reportData) {
+  return `
+    <div class="custom-section">
+      <h3>🎯 Weekly Goals</h3>
+      <p>Your custom content here</p>
+    </div>
+  `
+}
+```
 
-1. **Tạo Google Apps Script project**
-2. **Copy code vào editor**
-3. **Cấu hình CONFIG và EMAIL_CONFIG**
-4. **Tạo Google Sheet theo cấu trúc**
-5. **Test với `testContributionGrid()`**
-6. **Thiết lập trigger với `createDailyTrigger()`**
+### Custom Slack Commands
 
-## Ghi chú kỹ thuật
+```javascript
+// Add new slash command handler
+function handleCustomSlashCommand(params, config) {
+  // Your custom logic here
+  return buildSlackResponse('Custom response')
+}
+```
 
-- **Hiệu suất**: Sử dụng batch operations cho Google Sheets
-- **Bảo mật**: Không hard-code sensitive data
-- **Tương thích**: Responsive email design
-- **Mở rộng**: Modular architecture
-- **Debug**: Comprehensive logging system
+## Changelog
+
+### v2.0.0 (2025-01-20)
+- **Modular Architecture**: Split into separate modules
+- **Environment Variables**: PropertiesService configuration
+- **Performance Improvements**: Optimized for speed
+- **Enhanced Testing**: Comprehensive test suite
+- **Better Documentation**: Detailed setup guides
+- **Security Enhancements**: Secure configuration management
+- **Removed GitHub Grid**: Simplified email reports
+
+### v1.0.0
+- Initial release with basic functionality
+- Google Sheets integration
+- Email reports
+- Slack integration
+
+## Contributing
+
+1. Fork the project
+2. Create a feature branch
+3. Make your changes
+4. Add tests for new functionality
+5. Submit a pull request
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Acknowledgments
+
+- Google Apps Script team for the platform
+- Slack API for integration capabilities
+- Community feedback and contributions
+
+## Support
+
+For support and questions:
+
+1. Check the troubleshooting section
+2. Review the test functions
+3. Enable debug mode for detailed logs
+4. Create an issue with detailed information
 
 ---
 
-*Được thiết kế theo triết lý "Less, but better" - Tối giản nhưng hiệu quả*
+**Happy habit tracking!**

@@ -36,7 +36,7 @@ const CONFIG = {
   debugMode: true // Bật để debug
 };
 
-function sendDailyHabitReport() {
+function sendDailyHabitReport1() {
   // Sử dụng global CONFIG
 
   try {
@@ -597,13 +597,13 @@ function createDailyTrigger() {
     // Xóa trigger cũ nếu có
     const triggers = ScriptApp.getProjectTriggers();
     triggers.forEach(trigger => {
-      if (trigger.getHandlerFunction() === 'sendDailyHabitReport') {
+      if (trigger.getHandlerFunction() === 'sendDailyHabitReport1') {
         ScriptApp.deleteTrigger(trigger);
       }
     });
     
     // Tạo trigger mới
-    ScriptApp.newTrigger('sendDailyHabitReport')
+    ScriptApp.newTrigger('sendDailyHabitReport1')
       .timeBased()
       .everyDays(1)
       .atHour(8)
@@ -625,20 +625,20 @@ function createMultipleDailyTriggers() {
     // Xóa tất cả trigger cũ
     const triggers = ScriptApp.getProjectTriggers();
     triggers.forEach(trigger => {
-      if (trigger.getHandlerFunction() === 'sendDailyHabitReport') {
+      if (trigger.getHandlerFunction() === 'sendDailyHabitReport1') {
         ScriptApp.deleteTrigger(trigger);
       }
     });
     
     // Tạo trigger sáng 7:00
-    ScriptApp.newTrigger('sendDailyHabitReport')
+    ScriptApp.newTrigger('sendDailyHabitReport1')
       .timeBased()
       .everyDays(1)
       .atHour(7)
       .create();
     
     // Tạo trigger trưa 11:30
-    ScriptApp.newTrigger('sendDailyHabitReport')
+    ScriptApp.newTrigger('sendDailyHabitReport1')
       .timeBased()
       .everyDays(1)
       .atHour(11)
@@ -646,7 +646,7 @@ function createMultipleDailyTriggers() {
       .create();
     
     // Tạo trigger tối 19:00
-    ScriptApp.newTrigger('sendDailyHabitReport')
+    ScriptApp.newTrigger('sendDailyHabitReport1')
       .timeBased()
       .everyDays(1)
       .atHour(21)
@@ -671,7 +671,7 @@ function deleteAllTriggers() {
     let deletedCount = 0;
     
     triggers.forEach(trigger => {
-      if (trigger.getHandlerFunction() === 'sendDailyHabitReport') {
+      if (trigger.getHandlerFunction() === 'sendDailyHabitReport1') {
         ScriptApp.deleteTrigger(trigger);
         deletedCount++;
       }
@@ -691,7 +691,7 @@ function listCurrentTriggers() {
   try {
     const triggers = ScriptApp.getProjectTriggers();
     const habitTriggers = triggers.filter(trigger => 
-      trigger.getHandlerFunction() === 'sendDailyHabitReport'
+      trigger.getHandlerFunction() === 'sendDailyHabitReport1'
     );
     
     Logger.log(`Có ${habitTriggers.length} trigger đang hoạt động:`);
@@ -716,7 +716,7 @@ function testContributionGrid() {
    try {
      Logger.log('Testing Contribution Grid Feature...');
      
-     // Define CONFIG locally (same as in sendDailyHabitReport)
+     // Define CONFIG locally (same as in sendDailyHabitReport1)
      const CONFIG = {
        spreadsheetId: '1TrFiuWnxOqh7UjxRRIEaF6DFRRutdNdO-OxBRGC9Oho',
        sheetName: 'habit',
@@ -782,7 +782,7 @@ function testContributionGrid() {
      
      // Test complete - call main function
      Logger.log('Running full daily report...');
-     sendDailyHabitReport();
+     sendDailyHabitReport1();
      
    } catch (error) {
      Logger.log(`Test failed: ${error.message}`);
@@ -838,7 +838,7 @@ function testHabitTracker() {
   }
   
   // Chạy hàm chính
-  sendDailyHabitReport();
+  sendDailyHabitReport1();
 }
 
 /**
@@ -1429,7 +1429,7 @@ function handleCompleteHabitFromSlackFast(value, userId) {
     // Mở Google Sheet với timeout protection
     const sheet = SpreadsheetApp.openById(CONFIG.spreadsheetId).getSheetByName(CONFIG.sheetName);
     
-    // FIXED: Sử dụng cấu trúc đúng như trong sendDailyHabitReport
+    // FIXED: Sử dụng cấu trúc đúng như trong sendDailyHabitReport1
     // Lấy dữ liệu từ C14:AI31 (toàn bộ vùng dữ liệu)
     const dataRange = sheet.getRange(CONFIG.dataRange); // C14:AI31
     const values = dataRange.getValues();
@@ -1816,7 +1816,7 @@ function handleSlashCommand(e) {
  */
 function handleHabitReportCommand(text, userId, userName) {
   try {
-    // Tạo báo cáo nhanh trực tiếp thay vì gọi sendDailyHabitReport
+    // Tạo báo cáo nhanh trực tiếp thay vì gọi sendDailyHabitReport1
     const reportData = generateQuickHabitReport();
     
     if (!reportData.success) {

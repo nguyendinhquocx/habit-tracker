@@ -162,4 +162,4 @@ Có thể mở rộng thêm:
 
 ---
 
-**Chúc bạn thành công với việc xây dựng thói quen tốt! 🎯**
+**Chúc bạn thành công với việc xây dựng thói quen tốt!**

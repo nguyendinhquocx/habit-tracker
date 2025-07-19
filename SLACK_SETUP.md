@@ -78,13 +78,12 @@ slackChannel: '#your-channel-name'
 enableSlack: false
 ```
 
-### Tùy chỉnh bot name và icon
+### Tùy chỉnh bot name
 Trong hàm `sendSlackReport`, sửa:
 ```javascript
 const payload = {
   channel: config.slackChannel,
   username: 'Your Bot Name', // Thay đổi tên bot
-  icon_emoji: ':your_emoji:', // Thay đổi emoji
   blocks: slackMessage
 };
 ```
