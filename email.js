@@ -152,6 +152,10 @@ function buildEmailTemplate(data) {
   const pendingSection = buildHabitSection(pendingHabits, 'Chưa thực hiện', isPerfectDay ? colors.sectionTitle : colors.pendingTitle);
   const progressBar = ProgressUtils.buildProgressBar(completionRate, isPerfectDay);
   const motivationSection = buildMotivationSection(isPerfectDay, completionRate, colors);
+  
+  // Build English learning section
+  const englishSentences = getRandomEnglishSentences(30);
+  const englishLearningSection = buildEnglishLearningHTML(englishSentences);
 
   return `
     <!DOCTYPE html>
@@ -207,6 +211,9 @@ function buildEmailTemplate(data) {
 
         <!-- Daily Motivation -->
         ${motivationSection}
+
+        <!-- English Learning -->
+        ${englishLearningSection}
 
         <!-- Footer -->
         <div style="text-align: center; padding-top: 32px; border-top: 1px solid #f5f5f5;">
@@ -342,6 +349,11 @@ function buildPlainTextEmail(emailData) {
   const randomLessons = getRandomLessons(4);
   const lessonsText = buildLessonsText(randomLessons);
   text += lessonsText + '\n';
+  
+  // English learning section
+  const englishSentences = getRandomEnglishSentences(30);
+  const englishText = buildEnglishLearningText(englishSentences);
+  text += englishText + '\n';
   
   // Fallback motivation if no lessons available
   if (!randomLessons || randomLessons.length === 0) {

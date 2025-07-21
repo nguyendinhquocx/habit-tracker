@@ -153,6 +153,26 @@ function buildSlackMessage(reportData, config) {
     );
   }
 
+  // English learning section
+  const englishSentences = getRandomEnglishSentences(10); // Fewer sentences for Slack
+  if (englishSentences && englishSentences.length > 0) {
+    const englishText = buildEnglishLearningText(englishSentences);
+    if (englishText) {
+      blocks.push(
+        {
+          "type": "divider"
+        },
+        {
+          "type": "section",
+          "text": {
+            "type": "mrkdwn",
+            "text": englishText
+          }
+        }
+      );
+    }
+  }
+
   return {
     channel: config.slackChannel,
     blocks: blocks,

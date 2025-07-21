@@ -7,6 +7,7 @@ A comprehensive habit tracking system built with Google Apps Script, featuring m
 - **Google Sheets Integration**: Track habits directly in Google Sheets
 - **Email Reports**: Daily habit reports with beautiful HTML formatting
 - **Slack Integration**: Interactive Slack commands and notifications
+- **English Learning**: Passive English learning with random sentences in reports
 - **Advanced Analytics**: Streaks, completion rates, and trend analysis
 - **Modular Architecture**: Clean, maintainable code structure
 - **Performance Optimized**: Fast execution with smart caching
@@ -196,6 +197,7 @@ Add these scopes:
 - **Beautiful HTML Templates**: Professional-looking reports
 - **Progress Visualization**: Color-coded progress bars
 - **Streak Information**: Current and longest streaks
+- **English Learning Integration**: Random English sentences with Vietnamese translations
 - **Motivational Content**: Dynamic encouragement messages
 - **Responsive Design**: Works on desktop and mobile
 
@@ -354,7 +356,77 @@ function handleCustomSlashCommand(params, config) {
 }
 ```
 
+## English Learning Feature
+
+### Overview
+
+The English Learning feature provides passive English learning through daily habit reports. It integrates seamlessly with both email and Slack notifications, displaying random English sentences with Vietnamese translations.
+
+### Setup
+
+1. **Create English Learning Sheet**:
+   - Create a Google Sheet with ID: `1yTWfP2PwkBvJ8WYR-d0jeE-OZJaf7snZDdBLI09gXnA`
+   - Sheet name: `hoc tieng anh`
+   - Column A: English sentences
+   - Column B: Vietnamese translations
+
+2. **Configure the Feature**:
+   ```javascript
+   setConfig('ENGLISH_SHEET_ID', '1yTWfP2PwkBvJ8WYR-d0jeE-OZJaf7snZDdBLI09gXnA')
+   setConfig('ENGLISH_SHEET_NAME', 'hoc tieng anh')
+   ```
+
+### Features
+
+- **Random Selection**: Each report shows 30 random sentences (email) or 10 sentences (Slack)
+- **Bilingual Display**: Side-by-side English and Vietnamese presentation
+- **Beautiful Formatting**: Professional table layout in emails, clean blocks in Slack
+- **Error Handling**: Graceful fallback when sheet is unavailable
+- **Performance Optimized**: Efficient random sampling from large datasets
+
+### Usage
+
+The English learning content is automatically included in:
+
+- **Email Reports**: 30 random sentences in a formatted table
+- **Slack Reports**: 10 random sentences in block format
+
+### Testing
+
+```javascript
+// Test English learning functionality
+runAllEnglishLearningTests()
+
+// Quick test
+quickEnglishTest()
+
+// Test specific functions
+testEnglishLearningBasic()
+testEnglishLearningEmail()
+testEnglishLearningSlack()
+```
+
+### Customization
+
+```javascript
+// Modify number of sentences
+const emailSentences = getRandomEnglishSentences(20)  // Change from 30
+const slackSentences = getRandomEnglishSentences(5)   // Change from 10
+
+// Custom formatting
+function buildCustomEnglishSection(sentences) {
+  // Your custom HTML/formatting here
+}
+```
+
 ## Changelog
+
+### v2.1.0 (2025-01-20)
+- **English Learning Feature**: Passive English learning with random sentences
+- **Bilingual Support**: English-Vietnamese sentence pairs in reports
+- **Enhanced Email Templates**: Integrated English learning section
+- **Slack Learning Integration**: English sentences in Slack notifications
+- **Comprehensive Testing**: Full test suite for English learning module
 
 ### v2.0.0 (2025-01-20)
 - **Modular Architecture**: Split into separate modules

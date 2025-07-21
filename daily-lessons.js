@@ -106,7 +106,7 @@ function getRandomLessons(count = 4, spreadsheetId = '1yTWfP2PwkBvJ8WYR-d0jeE-OZ
 function buildLessonsHTML(lessons) {
   if (!lessons || lessons.length === 0) {
     return `
-      <div style="background: #f8f9fa; padding: 24px; border-radius: 12px; margin: 24px 0; color: #333333; text-align: center; border: 1px solid #e9ecef;">
+      <div style="background: white; padding: 24px; border-radius: 12px; margin: 24px 0; color: #333333; text-align: center; border: 1px solid #e9ecef;">
         <h3 style="margin: 0 0 16px; font-size: 18px; font-weight: 600; color: #333333;">Bài học hôm nay</h3>
         <p style="margin: 0; font-size: 14px; color: #666666;">Mỗi bước nhỏ đều có ý nghĩa. Hãy tiếp tục!</p>
       </div>
@@ -114,7 +114,7 @@ function buildLessonsHTML(lessons) {
   }
   
   let lessonsHTML = `
-    <div style="background: #f8f9fa; padding: 24px; border-radius: 12px; margin: 24px 0; color: #333333; border: 1px solid #e9ecef;">
+    <div style="background: white; padding: 24px; border-radius: 12px; margin: 24px 0; color: #333333; border: 1px solid #e9ecef;">
       <h3 style="margin: 0 0 20px; font-size: 18px; font-weight: 600; text-align: center; color: #333333;">Bài học hôm nay</h3>
   `;
   
