@@ -47,10 +47,10 @@ function getEnglishLearningData() {
 
 /**
  * Lấy ngẫu nhiên N câu từ dữ liệu học tiếng Anh
- * @param {number} count - Số câu cần lấy (mặc định 30)
+ * @param {number} count - Số câu cần lấy (mặc định 10)
  * @returns {Array} Mảng các câu được chọn ngẫu nhiên
  */
-function getRandomEnglishSentences(count = 30) {
+function getRandomEnglishSentences(count = 10) {
   try {
     const allData = getEnglishLearningData();
     

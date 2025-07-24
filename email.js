@@ -154,7 +154,7 @@ function buildEmailTemplate(data) {
   const motivationSection = buildMotivationSection(isPerfectDay, completionRate, colors);
   
   // Build English learning section
-  const englishSentences = getRandomEnglishSentences(30);
+  const englishSentences = getRandomEnglishSentences(10);
   const englishLearningSection = buildEnglishLearningHTML(englishSentences);
 
   return `
@@ -351,7 +351,7 @@ function buildPlainTextEmail(emailData) {
   text += lessonsText + '\n';
   
   // English learning section
-  const englishSentences = getRandomEnglishSentences(30);
+  const englishSentences = getRandomEnglishSentences(1);
   const englishText = buildEnglishLearningText(englishSentences);
   text += englishText + '\n';
   
